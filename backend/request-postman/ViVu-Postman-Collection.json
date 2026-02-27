@@ -1,0 +1,1357 @@
+{
+	"info": {
+		"name": "ViVu - Quản Lý Chi Tiêu Cá Nhân",
+		"description": "# ViVu - API Collection Hoàn Chỉnh\n\n## 🚀 Hướng Dẫn Sử Dụng:\n\n### Bước 1: Import vào Postman\n1. Mở Postman → Click **Import**\n2. Chọn file này → Click **Import**\n3. Collection sẽ xuất hiện ở sidebar trái\n\n### Bước 2: Test Nhanh\n1. Mở folder **\"1. Xác Thực\"**\n2. Chạy request **\"Đăng Ký (Local)\"**\n3. Token sẽ tự động lưu vào biến {{token}}\n4. Tất cả requests sau sẽ tự động dùng token này\n\n### Bước 3: Test Flow Hoàn Chỉnh\n1. Vào folder **\"6. Kịch Bản Test\"**\n2. Chạy **\"Kịch Bản 1: Hành Trình Người Dùng\"**\n3. Chạy từng bước từ 1-5\n\n## 📋 Cấu Trúc Collection:\n- **1. Xác Thực**: Đăng ký, đăng nhập, xem profile\n- **2. Quản Lý Ví**: Tạo, xem, xóa ví (✨ CÓ SỐ DƯ BAN ĐẦU)\n- **3. Danh Mục**: Quản lý categories thu/chi\n- **4. Giao Dịch**: Tạo thu/chi, xem lịch sử\n- **5. Báo Cáo & Thống Kê**: Thống kê tháng, biểu đồ\n- **6. Kịch Bản Test**: Các flow test hoàn chỉnh\n- **7. User Profile**: ✨ MỚI - Quản lý thông tin cá nhân\n- **8. AI & Voice**: ✨ MỚI - AI advice và nhập bằng giọng nói\n\n## ⚙️ Variables (Tự động):\n- baseUrl: http://localhost:8080\n- token: Tự động lưu sau khi đăng nhập\n- walletId, transactionId, categoryId: Tự động lưu khi tạo mới\n\n## 💡 Tips:\n- Token tự động lưu sau Register/Login\n- IDs tự động lưu khi tạo mới\n- Có thể chạy cả folder (right-click → Run folder)\n- Dùng Collection Runner cho test tự động\n\n## ✅ Kết Quả Mong Đợi:\n- Đăng ký: Status 200, trả về token + tự động tạo ví mặc định\n- Đăng nhập: Status 200, trả về token\n- Tạo giao dịch: Số dư ví tự động cập nhật\n- Báo cáo tháng: Có tổng thu/chi, top 5 categories, % so với tháng trước\n\n## 📝 Lưu Ý:\n- Backend phải chạy trên localhost:8080\n- Database đã có default categories (chạy insert-default-categories.sql trước)\n- Mẫu test data đã có sẵn trong mỗi request",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "walletId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "transactionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "categoryId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Xác Thực (Authentication)",
+			"description": "Các API liên quan đến đăng ký, đăng nhập, và quản lý tài khoản",
+			"item": [
+				{
+					"name": "Đăng Ký (Local)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('token', jsonData.token);",
+									"    console.log('✅ Token đã lưu:', jsonData.token);",
+									"    console.log('📧 Email:', jsonData.email);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"user123\",\n    \"email\": \"user123@example.com\",\n    \"password\": \"password123\",\n    \"fullName\": \"Nguyễn Văn A\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Đăng ký tài khoản mới. **Ví \"Ví chính\" sẽ tự động được tạo** với balance = 0.\n\n**Lưu ý**: Username và email phải unique."
+					}
+				},
+				{
+					"name": "Đăng Nhập (Local)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('token', jsonData.token);",
+									"    console.log('✅ Đăng nhập thành công!');",
+									"    console.log('Token đã lưu:', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"usernameOrEmail\": \"user123\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Đăng nhập bằng username hoặc email + password.\n\nToken JWT sẽ tự động được lưu vào biến {{token}}."
+					}
+				},
+				{
+					"name": "Đăng Nhập Google",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('token', jsonData.token);",
+									"    console.log('✅ Đăng nhập Google thành công!');",
+									"    console.log('Token đã lưu:', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"idToken\": \"GOOGLE_ID_TOKEN_TỪ_APP\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/google",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "google"]
+						},
+						"description": "Đăng nhập bằng Google OAuth2.\n\n**Cần**: Google ID Token từ mobile app.\n\nNếu email chưa tồn tại → tạo user mới + ví mặc định."
+					}
+				},
+				{
+					"name": "Xem Profile Của Tôi",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/my-profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "my-profile"]
+						},
+						"description": "Lấy thông tin profile của user hiện tại.\n\nTrả về: id, username, email, fullName, avatarUrl, provider, createdAt"
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Quản Lý Ví (Wallets)",
+			"description": "Tạo, xem, xóa ví của user",
+			"item": [
+				{
+					"name": "Lấy Tất Cả Ví Của Tôi",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/wallets",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallets"]
+						},
+						"description": "Lấy danh sách tất cả ví của user.\n\nBao gồm: id, name, balance, currency, createdAt"
+					}
+				},
+				{
+					"name": "Lấy Ví Theo ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/wallets/{{walletId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallets", "{{walletId}}"]
+						},
+						"description": "Xem chi tiết 1 ví theo ID.\n\n**Lưu ý**: Chỉ xem được ví của mình."
+					}
+				},
+				{
+					"name": "Tạo Ví Mới",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('walletId', jsonData.id);",
+									"    console.log('✅ Ví mới đã tạo! ID:', jsonData.id);",
+									"    console.log('Tên:', jsonData.name);",
+									"    console.log('Số dư:', jsonData.balance);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Ví tiết kiệm\",\n    \"initialBalance\": 5000000,\n    \"currency\": \"VND\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/wallets",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallets"]
+						},
+						"description": "✨ Tạo ví mới với SỐ DƯ BAN ĐẦU.\n\n**initialBalance**: Số dư ban đầu do user tự nhập (VD: 5.000.000 VNĐ)\n**currency**: VND (mặc định nếu không truyền)\n\n💡 Sau này mỗi khi có giao dịch:\n- Thu nhập (+) → balance tăng\n- Chi tiêu (-) → balance giảm\n- Công thức: balance = initialBalance + ΣINCOME - ΣEXPENSE"
+					}
+				},
+				{
+					"name": "Xóa Ví",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/wallets/{{walletId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallets", "{{walletId}}"]
+						},
+						"description": "Xóa ví theo ID.\n\n**Lưu ý**: Không xóa được nếu ví còn giao dịch. Phải xóa hết giao dịch trước."
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Danh Mục (Categories)",
+			"description": "Quản lý categories thu/chi (default + custom)",
+			"item": [
+				{
+					"name": "Lấy Tất Cả Danh Mục",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories"]
+						},
+						"description": "Lấy tất cả categories (default của hệ thống + custom của user).\n\nBao gồm: id, name, type, icon, isDefault"
+					}
+				},
+				{
+					"name": "Lấy Danh Mục CHI (EXPENSE)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories?type=EXPENSE",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories"],
+							"query": [
+								{
+									"key": "type",
+									"value": "EXPENSE"
+								}
+							]
+						},
+						"description": "Lấy chỉ categories CHI TIÊU.\n\nVí dụ: Ăn uống, Di chuyển, Trà sữa, Mua sắm..."
+					}
+				},
+				{
+					"name": "Lấy Danh Mục THU (INCOME)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories?type=INCOME",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories"],
+							"query": [
+								{
+									"key": "type",
+									"value": "INCOME"
+								}
+							]
+						},
+						"description": "Lấy chỉ categories THU NHẬP.\n\nVí dụ: Lương, Thưởng, Đầu tư, Kinh doanh..."
+					}
+				},
+				{
+					"name": "Lấy Danh Mục Theo ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "{{categoryId}}"]
+						},
+						"description": "Xem chi tiết 1 category theo ID."
+					}
+				},
+				{
+					"name": "Tạo Danh Mục Custom",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('categoryId', jsonData.id);",
+									"    console.log('✅ Category mới đã tạo! ID:', jsonData.id);",
+									"    console.log('Tên:', jsonData.name);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Cà phê\",\n    \"type\": \"EXPENSE\",\n    \"icon\": \"☕\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories"]
+						},
+						"description": "Tạo category custom riêng cho user.\n\n**type**: \"EXPENSE\" hoặc \"INCOME\"\n**icon**: optional, có thể dùng emoji"
+					}
+				},
+				{
+					"name": "Xóa Danh Mục Custom",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "categories", "{{categoryId}}"]
+						},
+						"description": "Xóa category custom.\n\n**Lưu ý**: \n- Không xóa được default categories\n- Chỉ xóa được category mình tạo"
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Giao Dịch (Transactions)",
+			"description": "Tạo thu/chi, xem lịch sử giao dịch",
+			"item": [
+				{
+					"name": "Lấy Tất Cả Giao Dịch Của Tôi",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions"]
+						},
+						"description": "Lấy tất cả giao dịch của user (tất cả ví), sắp xếp theo ngày mới nhất."
+					}
+				},
+				{
+					"name": "Lấy Giao Dịch Theo Ví",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions/wallet/{{walletId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions", "wallet", "{{walletId}}"]
+						},
+						"description": "Lấy giao dịch của 1 ví cụ thể."
+					}
+				},
+				{
+					"name": "Tạo Giao Dịch CHI - Ăn Uống",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('transactionId', jsonData.id);",
+									"    console.log('✅ Giao dịch CHI đã tạo!');",
+									"    console.log('ID:', jsonData.id);",
+									"    console.log('Số tiền:', jsonData.amount);",
+									"    console.log('⚠️  Số dư ví đã GIẢM', jsonData.amount);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"walletId\": 1,\n    \"categoryId\": 1,\n    \"amount\": 50000,\n    \"type\": \"EXPENSE\",\n    \"note\": \"Cơm trưa\",\n    \"transactionDate\": \"2026-02-17T12:30:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions"]
+						},
+						"description": "Tạo giao dịch CHI TIÊU.\n\n**Số dư ví tự động GIẢM** khi tạo.\n\n**categoryId**: 1 = Ăn uống (xem list categories)\n**transactionDate**: optional, mặc định = now"
+					}
+				},
+				{
+					"name": "Tạo Giao Dịch CHI - Trà Sữa",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"walletId\": 1,\n    \"categoryId\": 3,\n    \"amount\": 35000,\n    \"type\": \"EXPENSE\",\n    \"note\": \"Trà sữa chiều\",\n    \"transactionDate\": \"2026-02-17T15:00:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions"]
+						},
+						"description": "Tạo giao dịch CHI TIÊU - Trà sữa.\n\n**categoryId**: 3 = Trà sữa"
+					}
+				},
+				{
+					"name": "Tạo Giao Dịch CHI - Di Chuyển",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"walletId\": 1,\n    \"categoryId\": 2,\n    \"amount\": 25000,\n    \"type\": \"EXPENSE\",\n    \"note\": \"Grab về nhà\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions"]
+						},
+						"description": "Tạo giao dịch CHI - Di chuyển.\n\n**categoryId**: 2 = Di chuyển"
+					}
+				},
+				{
+					"name": "Tạo Giao Dịch THU - Lương",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"walletId\": 1,\n    \"categoryId\": 11,\n    \"amount\": 10000000,\n    \"type\": \"INCOME\",\n    \"note\": \"Lương tháng 2\",\n    \"transactionDate\": \"2026-02-01T09:00:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions"]
+						},
+						"description": "Tạo giao dịch THU NHẬP.\n\n**Số dư ví tự động TĂNG** khi tạo.\n\n**categoryId**: 11 = Lương (xem list categories)"
+					}
+				},
+				{
+					"name": "Tạo Giao Dịch Không Có Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"walletId\": 1,\n    \"amount\": 20000,\n    \"type\": \"EXPENSE\",\n    \"note\": \"Mua vặt\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions"]
+						},
+						"description": "Tạo giao dịch KHÔNG CÓ CATEGORY.\n\n**categoryId** = null → hiển thị \"Chưa phân loại\" trong báo cáo."
+					}
+				},
+				{
+					"name": "Xóa Giao Dịch",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/transactions/{{transactionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "transactions", "{{transactionId}}"]
+						},
+						"description": "Xóa giao dịch theo ID.\n\n**Số dư ví tự động ROLLBACK** về trước khi tạo giao dịch này."
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Báo Cáo & Thống Kê (Reports)",
+			"description": "Xem báo cáo tháng, thống kê theo category, chart data",
+			"item": [
+				{
+					"name": "Báo Cáo Tháng Hiện Tại",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/current-month",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "current-month"]
+						},
+						"description": "Lấy báo cáo tháng hiện tại.\n\n**Bao gồm**:\n- Tổng thu/chi\n- So sánh với tháng trước (% thay đổi)\n- Top 5 categories chi/thu nhiều nhất\n- Data đầy đủ cho Pie Chart và Bar Chart"
+					}
+				},
+				{
+					"name": "Báo Cáo Tháng 2/2026",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/monthly?period=2026-02",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "monthly"],
+							"query": [
+								{
+									"key": "period",
+									"value": "2026-02",
+									"description": "Format: YYYY-MM"
+								}
+							]
+						},
+						"description": "Lấy báo cáo tháng 2 năm 2026.\n\n**Query param**: period = YYYY-MM (ví dụ: 2026-02)"
+					}
+				},
+				{
+					"name": "Báo Cáo - Chỉ Xem CHI",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/monthly?period=2026-02&type=EXPENSE",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "monthly"],
+							"query": [
+								{
+									"key": "period",
+									"value": "2026-02"
+								},
+								{
+									"key": "type",
+									"value": "EXPENSE",
+									"description": "Chỉ xem CHI TIÊU"
+								}
+							]
+						},
+						"description": "Lấy báo cáo CHỈ CHI TIÊU.\n\n**Query param**: type = EXPENSE (hoặc INCOME)"
+					}
+				},
+				{
+					"name": "Báo Cáo - Theo Ví Cụ Thể",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/monthly?period=2026-02&walletId={{walletId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "monthly"],
+							"query": [
+								{
+									"key": "period",
+									"value": "2026-02"
+								},
+								{
+									"key": "walletId",
+									"value": "{{walletId}}",
+									"description": "Filter theo ví cụ thể"
+								}
+							]
+						},
+						"description": "Lấy báo cáo của 1 ví cụ thể.\n\n**Query param**: walletId = ID của ví"
+					}
+				},
+				{
+					"name": "Xem Giao Dịch Theo Ngày",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/transactions?startDate=2026-02-01T00:00:00&endDate=2026-02-28T23:59:59",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "transactions"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-02-01T00:00:00",
+									"description": "Format: ISO DateTime"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-28T23:59:59",
+									"description": "Format: ISO DateTime"
+								}
+							]
+						},
+						"description": "Lấy danh sách giao dịch theo khoảng thời gian.\n\n**Query params**:\n- startDate: ISO DateTime (YYYY-MM-DDTHH:mm:ss)\n- endDate: ISO DateTime"
+					}
+				},
+				{
+					"name": "Filter Giao Dịch - CHI + Date Range",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/transactions?startDate=2026-02-01T00:00:00&endDate=2026-02-28T23:59:59&type=EXPENSE",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reports", "transactions"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-02-01T00:00:00"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-02-28T23:59:59"
+								},
+								{
+									"key": "type",
+									"value": "EXPENSE",
+									"description": "Chỉ xem CHI TIÊU"
+								}
+							]
+						},
+						"description": "Lấy giao dịch CHI TIÊU trong khoảng thời gian.\n\nCó thể kết hợp:\n- type: EXPENSE/INCOME\n- walletId: filter theo ví"
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Kịch Bản Test (Scenarios)",
+			"description": "Các flow test hoàn chỉnh từ đầu đến cuối",
+			"item": [
+				{
+					"name": "Kịch Bản 1: Hành Trình Người Dùng Hoàn Chỉnh",
+					"description": "Test toàn bộ flow: Đăng ký → Tạo giao dịch → Xem báo cáo",
+					"item": [
+						{
+							"name": "Bước 1: Đăng Ký User Mới",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    pm.collectionVariables.set('token', jsonData.token);",
+											"    console.log('✅ Bước 1: Đăng ký thành công!');",
+											"    console.log('Token:', jsonData.token);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"testuser_{{$timestamp}}\",\n    \"email\": \"test{{$timestamp}}@example.com\",\n    \"password\": \"password123\",\n    \"fullName\": \"User Test {{$timestamp}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/register",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "register"]
+								},
+								"description": "Đăng ký user mới với timestamp để tránh trùng lặp."
+							}
+						},
+						{
+							"name": "Bước 2: Kiểm Tra Ví Mặc Định",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.length > 0) {",
+											"        pm.collectionVariables.set('walletId', jsonData[0].id);",
+											"        console.log('✅ Bước 2: Ví mặc định đã tồn tại!');",
+											"        console.log('Wallet ID:', jsonData[0].id);",
+											"        console.log('Tên ví:', jsonData[0].name);",
+											"        console.log('Số dư:', jsonData[0].balance);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/wallets",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallets"]
+								},
+								"description": "Kiểm tra ví \"Ví chính\" đã được tạo tự động."
+							}
+						},
+						{
+							"name": "Bước 3: Thêm Giao Dịch THU",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    console.log('✅ Bước 3: Đã thêm thu nhập 15tr!');",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"walletId\": {{walletId}},\n    \"categoryId\": 11,\n    \"amount\": 15000000,\n    \"type\": \"INCOME\",\n    \"note\": \"Lương tháng này\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/transactions",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "transactions"]
+								},
+								"description": "Thêm thu nhập 15 triệu."
+							}
+						},
+						{
+							"name": "Bước 4: Thêm Nhiều Giao Dịch CHI",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    console.log('✅ Bước 4: Đã thêm chi tiêu!');",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"walletId\": {{walletId}},\n    \"categoryId\": 1,\n    \"amount\": 45000,\n    \"type\": \"EXPENSE\",\n    \"note\": \"Cơm trưa\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/transactions",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "transactions"]
+								},
+								"description": "Thêm chi tiêu ăn uống."
+							}
+						},
+						{
+							"name": "Bước 5: Xem Báo Cáo Tháng",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    console.log('✅ Bước 5: Báo cáo tháng hiện tại');",
+											"    console.log('Thu nhập:', jsonData.totalIncome);",
+											"    console.log('Chi tiêu:', jsonData.totalExpense);",
+											"    console.log('Còn lại:', jsonData.balance);",
+											"    console.log('Top chi tiêu:', JSON.stringify(jsonData.topExpenseCategories));",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/reports/current-month",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "reports", "current-month"]
+								},
+								"description": "Xem báo cáo tháng với thống kê đầy đủ."
+							}
+						}
+					]
+				},
+				{
+					"name": "Kịch Bản 2: Nhiều Ví & Giao Dịch",
+					"description": "Test với nhiều ví và chuyển tiền giữa các ví",
+					"item": [
+						{
+							"name": "Tạo Ví Tiết Kiệm",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    pm.collectionVariables.set('walletId', jsonData.id);",
+											"    console.log('✅ Ví tiết kiệm đã tạo! ID:', jsonData.id);",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Ví tiết kiệm\",\n    \"initialBalance\": 10000000,\n    \"currency\": \"VND\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallets",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallets"]
+								}
+							}
+						},
+						{
+							"name": "Thêm Tiền Vào Ví Tiết Kiệm",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"walletId\": {{walletId}},\n    \"categoryId\": 11,\n    \"amount\": 5000000,\n    \"type\": \"INCOME\",\n    \"note\": \"Tiết kiệm tháng này\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/transactions",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "transactions"]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "7. User Profile (Quản Lý Tài Khoản)",
+			"description": "✨ MỚI - Quản lý thông tin cá nhân, đổi mật khẩu, xóa tài khoản",
+			"item": [
+				{
+					"name": "Xem Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "profile"]
+						},
+						"description": "Lấy thông tin profile của user hiện tại.\n\nBao gồm: id, username, email, fullName, avatarUrl, provider, createdAt"
+					}
+				},
+				{
+					"name": "Cập Nhật Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\": \"Nguyễn Văn A Updated\",\n    \"email\": \"newemail@example.com\",\n    \"avatarUrl\": \"https://i.pravatar.cc/300\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "profile"]
+						},
+						"description": "Cập nhật thông tin profile.\n\nCó thể update: fullName, email, avatarUrl"
+					}
+				},
+				{
+					"name": "Đổi Mật Khẩu",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oldPassword\": \"password123\",\n    \"newPassword\": \"newpassword456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/change-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "change-password"]
+						},
+						"description": "Đổi mật khẩu.\n\n⚠️ Chỉ áp dụng cho tài khoản LOCAL (không phải OAuth).\n\nPassword mới phải có ít nhất 6 ký tự."
+					}
+				},
+				{
+					"name": "Xóa Tài Khoản",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/account",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "account"]
+						},
+						"description": "Xóa tài khoản vĩnh viễn.\n\n⚠️ CẢNH BÁO: Hành động này sẽ xóa:\n- Tài khoản user\n- Tất cả ví\n- Tất cả giao dịch\n- Tất cả categories custom\n- Không thể hoàn tác!"
+					}
+				}
+			]
+		},
+		{
+			"name": "8. AI & Voice (Trợ Lý AI)",
+			"description": "✨ MỚI - AI advice tài chính & nhập giao dịch bằng giọng nói",
+			"item": [
+				{
+					"name": "Tạo Lời Khuyên AI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"period\": \"2026-02\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ai/advice/generate",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "ai", "advice", "generate"]
+						},
+						"description": "Tạo lời khuyên AI dựa trên chi tiêu trong tháng.\n\n**period**: Tháng cần phân tích (format YYYY-MM). Không truyền = tháng hiện tại.\n\n🤖 AI sẽ phân tích:\n- Tổng thu/chi\n- Tình trạng tài chính\n- Đưa ra lời khuyên cụ thể\n\n💡 Hiện tại dùng logic giả lập. Có thể tích hợp OpenAI/Gemini API sau."
+					}
+				},
+				{
+					"name": "Xem Lịch Sử Lời Khuyên",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/ai/advice/history",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "ai", "advice", "history"]
+						},
+						"description": "Lấy lịch sử tất cả lời khuyên AI đã tạo.\n\nSắp xếp theo thời gian mới nhất."
+					}
+				},
+				{
+					"name": "Parse Giọng Nói",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"voiceText\": \"Chi 50 nghìn tiền cafe\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ai/voice/parse",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "ai", "voice", "parse"]
+						},
+						"description": "Parse text từ giọng nói thành transaction data.\n\n🎤 Cách dùng:\n1. Frontend dùng Web Speech API để convert giọng nói → text\n2. Gửi text lên API này\n3. Backend parse thành: type, amount, note\n4. Frontend tạo transaction với data đã parse\n\n📝 Ví dụ input:\n- \"Chi 50 nghìn tiền cafe\" → EXPENSE, 50000, \"tiền cafe\"\n- \"Thu 10 triệu tiền lương\" → INCOME, 10000000, \"tiền lương\"\n- \"Mua trà sữa 45k\" → EXPENSE, 45000, \"trà sữa\"\n\n💡 Hiện dùng simple parsing. Có thể nâng cấp bằng NLP/AI thật."
+					}
+				}
+			]
+		}
+	]
+}
