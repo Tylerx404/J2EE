@@ -43,6 +43,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                         @Param("startDate") LocalDateTime startDate,
                         @Param("endDate") LocalDateTime endDate);
 
+        @Query("SELECT t FROM Transaction t WHERE t.wallet.user.id = :userId " +
+                        "AND t.transactionDate >= :startDate AND t.transactionDate < :endDate " +
+                        "AND (:walletId IS NULL OR t.wallet.id = :walletId) " +
+                        "AND (:type IS NULL OR t.type = :type) " +
+                        "ORDER BY t.transactionDate DESC")
+        List<Transaction> findByUserIdAndDateRangeWithFilters(
+                        @Param("userId") Long userId,
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate,
+                        @Param("walletId") Long walletId,
+                        @Param("type") String type);
+
         // Methods để tính số dư động (dynamic balance calculation)
         @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.wallet.id = :walletId AND t.type = 'INCOME'")
         java.math.BigDecimal sumIncomeByWallet(@Param("walletId") Long walletId);

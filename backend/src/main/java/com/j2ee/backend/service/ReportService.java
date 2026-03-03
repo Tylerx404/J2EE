@@ -6,7 +6,9 @@ import com.j2ee.backend.entity.Transaction;
 import com.j2ee.backend.entity.User;
 import com.j2ee.backend.repository.TransactionRepository;
 import com.j2ee.backend.repository.UserRepository;
+import com.j2ee.backend.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,6 +23,7 @@ public class ReportService {
 
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
 
     /**
      * Lấy báo cáo tháng chi tiết
@@ -112,13 +115,12 @@ public class ReportService {
      */
     private List<Transaction> getTransactions(Long userId, LocalDateTime startDate, LocalDateTime endDate,
             Long walletId, String type) {
-        if (walletId != null) {
-            return transactionRepository.findByWalletIdAndDateRange(walletId, startDate, endDate);
-        } else if (type != null) {
-            return transactionRepository.findByUserIdAndDateRangeAndType(userId, startDate, endDate, type);
-        } else {
-            return transactionRepository.findByUserIdAndDateRange(userId, startDate, endDate);
+        if (walletId != null && !walletRepository.existsByIdAndUserId(walletId, userId)) {
+            throw new AccessDeniedException("Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p wallet nÃ y!");
         }
+
+        return transactionRepository.findByUserIdAndDateRangeWithFilters(
+                userId, startDate, endDate, walletId, type);
     }
 
     /**
