@@ -1,5 +1,6 @@
 package com.j2ee.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 import jakarta.persistence.*;
@@ -26,6 +27,7 @@ public class User {
     private String email;
 
     @Column(name = "PASSWORD_HASH", length = 255)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(name = "FULL_NAME", length = 100)

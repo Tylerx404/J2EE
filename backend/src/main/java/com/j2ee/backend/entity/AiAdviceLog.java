@@ -1,5 +1,6 @@
 package com.j2ee.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,6 +22,7 @@ public class AiAdviceLog {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_ID", nullable = false)
+    @JsonIgnore
     private User user;
 
     @Column(name = "ADVICE_TEXT")
