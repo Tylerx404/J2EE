@@ -4,11 +4,17 @@ import com.j2ee.backend.dto.response.MonthlyReportDetailResponse;
 import com.j2ee.backend.dto.response.TransactionResponse;
 import com.j2ee.backend.entity.Transaction;
 import com.j2ee.backend.service.ReportService;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -18,57 +24,42 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
+@Validated
 public class ReportController {
 
     private final ReportService reportService;
 
-    /**
-     * GET /api/reports/monthly?period=2026-02
-     * Lấy báo cáo tháng chi tiết với so sánh tháng trước và top categories
-     * 
-     * Query params:
-     * - period: "YYYY-MM" (required)
-     * - walletId: Long (optional) - filter theo wallet
-     * - type: "EXPENSE" or "INCOME" (optional) - filter theo type
-     */
     @GetMapping("/monthly")
     public ResponseEntity<MonthlyReportDetailResponse> getMonthlyReport(
             Authentication authentication,
-            @RequestParam String period,
-            @RequestParam(required = false) Long walletId,
-            @RequestParam(required = false) String type) {
+            @RequestParam
+            @Pattern(regexp = "^\\d{4}-\\d{2}$", message = "period must be in format YYYY-MM")
+            String period,
+            @RequestParam(required = false) @Positive(message = "walletId must be positive") Long walletId,
+            @RequestParam(required = false)
+            @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME")
+            String type) {
 
         String username = authentication.getName();
-
-        // Validate period format
-        if (!period.matches("\\d{4}-\\d{2}")) {
-            throw new IllegalArgumentException("Period phải có format YYYY-MM, ví dụ: 2026-02");
-        }
-
         MonthlyReportDetailResponse report = reportService.getMonthlyReport(username, period, walletId, type);
         return ResponseEntity.ok(report);
     }
 
-    /**
-     * GET /api/reports/transactions
-     * Lấy danh sách transactions với filter date range
-     * 
-     * Query params:
-     * - startDate: ISO DateTime (required)
-     * - endDate: ISO DateTime (required)
-     * - walletId: Long (optional)
-     * - type: "EXPENSE" or "INCOME" (optional)
-     */
     @GetMapping("/transactions")
     public ResponseEntity<List<TransactionResponse>> getFilteredTransactions(
             Authentication authentication,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(required = false) Long walletId,
-            @RequestParam(required = false) String type) {
+            @RequestParam(required = false) @Positive(message = "walletId must be positive") Long walletId,
+            @RequestParam(required = false)
+            @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME")
+            String type) {
+
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("startDate must be before or equal to endDate");
+        }
 
         String username = authentication.getName();
-
         List<Transaction> transactions = reportService.getTransactionsFiltered(
                 username, startDate, endDate, walletId, type);
 
@@ -79,19 +70,15 @@ public class ReportController {
         return ResponseEntity.ok(responses);
     }
 
-    /**
-     * GET /api/reports/current-month
-     * Shortcut để lấy báo cáo tháng hiện tại
-     */
     @GetMapping("/current-month")
     public ResponseEntity<MonthlyReportDetailResponse> getCurrentMonthReport(
             Authentication authentication,
-            @RequestParam(required = false) Long walletId,
-            @RequestParam(required = false) String type) {
+            @RequestParam(required = false) @Positive(message = "walletId must be positive") Long walletId,
+            @RequestParam(required = false)
+            @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME")
+            String type) {
 
         String username = authentication.getName();
-
-        // Get current month in format YYYY-MM
         YearMonth currentMonth = YearMonth.now();
         String period = String.format("%d-%02d", currentMonth.getYear(), currentMonth.getMonthValue());
 
@@ -99,9 +86,6 @@ public class ReportController {
         return ResponseEntity.ok(report);
     }
 
-    /**
-     * Helper method to convert Transaction to TransactionResponse
-     */
     private TransactionResponse toTransactionResponse(Transaction transaction) {
         return TransactionResponse.builder()
                 .id(transaction.getId())

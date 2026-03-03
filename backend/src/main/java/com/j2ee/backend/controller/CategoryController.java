@@ -3,9 +3,12 @@ package com.j2ee.backend.controller;
 import com.j2ee.backend.dto.request.CategoryCreateRequest;
 import com.j2ee.backend.dto.response.CategoryResponse;
 import com.j2ee.backend.service.CategoryService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
+@Validated
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -23,7 +27,7 @@ public class CategoryController {
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAllCategories(
             Authentication authentication,
-            @RequestParam(required = false) String type) {
+            @RequestParam(required = false) @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME") String type) {
         String username = authentication.getName();
 
         if (type != null) {
@@ -47,7 +51,7 @@ public class CategoryController {
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(
             Authentication authentication,
-            @RequestBody CategoryCreateRequest request) {
+            @Valid @RequestBody CategoryCreateRequest request) {
         String username = authentication.getName();
         return ResponseEntity.ok(categoryService.createCategory(username, request));
     }

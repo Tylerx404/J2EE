@@ -3,6 +3,7 @@ package com.j2ee.backend.controller;
 import com.j2ee.backend.dto.request.WalletCreateRequest;
 import com.j2ee.backend.dto.response.WalletResponse;
 import com.j2ee.backend.service.WalletService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -43,7 +44,7 @@ public class WalletController {
     @PostMapping
     public ResponseEntity<WalletResponse> createWallet(
             Authentication authentication,
-            @RequestBody WalletCreateRequest request) {
+            @Valid @RequestBody WalletCreateRequest request) {
         String username = authentication.getName();
         return ResponseEntity.ok(walletService.createWallet(username, request));
     }

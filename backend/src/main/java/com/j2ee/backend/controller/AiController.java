@@ -1,8 +1,11 @@
 package com.j2ee.backend.controller;
 
+import com.j2ee.backend.dto.request.AiGenerateAdviceRequest;
+import com.j2ee.backend.dto.request.VoiceParseRequest;
 import com.j2ee.backend.dto.response.AiAdviceResponse;
 import com.j2ee.backend.entity.AiAdviceLog;
 import com.j2ee.backend.service.AiService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,11 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Map;
 
-/**
- * AiController - Endpoints cho AI Advice
- */
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
@@ -23,19 +22,13 @@ public class AiController {
 
     private final AiService aiService;
 
-    /**
-     * POST /api/ai/advice/generate - Tạo lời khuyên AI cho một khoảng thời gian
-     * Body: { "period": "2026-02" } (optional, default là tháng hiện tại)
-     */
     @PostMapping("/advice/generate")
     public ResponseEntity<AiAdviceResponse> generateAdvice(
             Authentication authentication,
-            @RequestBody(required = false) Map<String, String> request) {
+            @Valid @RequestBody(required = false) AiGenerateAdviceRequest request) {
         String username = authentication.getName();
-
-        // Parse period (default là tháng hiện tại)
-        String period = (request != null && request.containsKey("period"))
-                ? request.get("period")
+        String period = (request != null && request.period() != null)
+                ? request.period()
                 : YearMonth.now().toString();
 
         YearMonth yearMonth = YearMonth.parse(period);
@@ -46,9 +39,6 @@ public class AiController {
         return ResponseEntity.ok(toResponse(advice));
     }
 
-    /**
-     * GET /api/ai/advice/history - Lấy lịch sử lời khuyên AI
-     */
     @GetMapping("/advice/history")
     public ResponseEntity<List<AiAdviceResponse>> getAdviceHistory(Authentication authentication) {
         String username = authentication.getName();
@@ -56,23 +46,10 @@ public class AiController {
         return ResponseEntity.ok(history.stream().map(this::toResponse).toList());
     }
 
-    /**
-     * POST /api/ai/voice/parse - Parse giọng nói thành transaction data
-     * Body: { "voiceText": "Chi 50 nghìn tiền cafe" }
-     * 
-     * Frontend sẽ dùng Speech-to-Text API (Web Speech API hoặc Google Speech)
-     * rồi gửi text lên backend để parse
-     */
     @PostMapping("/voice/parse")
     public ResponseEntity<AiService.VoiceTransactionData> parseVoiceInput(
-            @RequestBody Map<String, String> request) {
-        String voiceText = request.get("voiceText");
-
-        if (voiceText == null || voiceText.isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        AiService.VoiceTransactionData data = aiService.parseVoiceInput(voiceText);
+            @Valid @RequestBody VoiceParseRequest request) {
+        AiService.VoiceTransactionData data = aiService.parseVoiceInput(request.voiceText());
         return ResponseEntity.ok(data);
     }
 

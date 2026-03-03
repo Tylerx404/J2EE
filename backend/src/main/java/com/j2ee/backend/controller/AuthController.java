@@ -6,6 +6,7 @@ import com.j2ee.backend.dto.request.RegisterRequest;
 import com.j2ee.backend.dto.response.JwtResponse;
 import com.j2ee.backend.dto.response.UserProfileResponse;
 import com.j2ee.backend.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -20,17 +21,17 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<JwtResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<JwtResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/google")
-    public ResponseEntity<JwtResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
+    public ResponseEntity<JwtResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
         return ResponseEntity.ok(authService.loginWithGoogle(request));
     }
 

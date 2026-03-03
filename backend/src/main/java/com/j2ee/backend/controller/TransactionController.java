@@ -3,6 +3,7 @@ package com.j2ee.backend.controller;
 import com.j2ee.backend.dto.request.TransactionCreateRequest;
 import com.j2ee.backend.dto.response.TransactionResponse;
 import com.j2ee.backend.service.TransactionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -43,7 +44,7 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<TransactionResponse> createTransaction(
             Authentication authentication,
-            @RequestBody TransactionCreateRequest request) {
+            @Valid @RequestBody TransactionCreateRequest request) {
         String username = authentication.getName();
         return ResponseEntity.ok(transactionService.createTransaction(username, request));
     }
