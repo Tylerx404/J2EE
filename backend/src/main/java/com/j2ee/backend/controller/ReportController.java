@@ -1,9 +1,20 @@
 package com.j2ee.backend.controller;
 
 import com.j2ee.backend.dto.response.MonthlyReportDetailResponse;
+import com.j2ee.backend.dto.response.ApiErrorResponse;
+import com.j2ee.backend.dto.response.ApiValidationErrorResponse;
 import com.j2ee.backend.dto.response.TransactionResponse;
 import com.j2ee.backend.entity.Transaction;
 import com.j2ee.backend.service.ReportService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -25,17 +36,33 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Report", description = "API báo cáo giao dịch và thống kê theo thời gian.")
+@SecurityRequirement(name = "bearerAuth")
 public class ReportController {
 
     private final ReportService reportService;
 
     @GetMapping("/monthly")
+    @Operation(summary = "Lấy báo cáo theo tháng", description = "Tổng hợp thu/chi theo kỳ YYYY-MM.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lấy dữ liệu thành công", content = @Content(schema = @Schema(implementation = MonthlyReportDetailResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Query param không hợp lệ", content = {
+                    @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class)),
+                    @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập ví", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<MonthlyReportDetailResponse> getMonthlyReport(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(description = "Kỳ báo cáo định dạng YYYY-MM", example = "2026-03")
             @RequestParam
             @Pattern(regexp = "^\\d{4}-\\d{2}$", message = "period must be in format YYYY-MM")
             String period,
+            @Parameter(description = "Lọc theo ví", example = "1")
             @RequestParam(required = false) @Positive(message = "walletId must be positive") Long walletId,
+            @Parameter(description = "Lọc theo loại giao dịch", example = "EXPENSE")
             @RequestParam(required = false)
             @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME")
             String type) {
@@ -46,11 +73,26 @@ public class ReportController {
     }
 
     @GetMapping("/transactions")
+    @Operation(summary = "Lấy giao dịch theo khoảng thời gian")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lấy dữ liệu thành công", content = @Content(array = @ArraySchema(schema = @Schema(implementation = TransactionResponse.class)))),
+            @ApiResponse(responseCode = "400", description = "Query param không hợp lệ", content = {
+                    @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class)),
+                    @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập ví", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<List<TransactionResponse>> getFilteredTransactions(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(description = "Thời gian bắt đầu (ISO-8601)", example = "2026-03-01T00:00:00")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @Parameter(description = "Thời gian kết thúc (ISO-8601)", example = "2026-03-31T23:59:59")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @Parameter(description = "Lọc theo ví", example = "1")
             @RequestParam(required = false) @Positive(message = "walletId must be positive") Long walletId,
+            @Parameter(description = "Lọc theo loại giao dịch", example = "EXPENSE")
             @RequestParam(required = false)
             @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME")
             String type) {
@@ -71,9 +113,22 @@ public class ReportController {
     }
 
     @GetMapping("/current-month")
+    @Operation(summary = "Lấy báo cáo tháng hiện tại")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lấy dữ liệu thành công", content = @Content(schema = @Schema(implementation = MonthlyReportDetailResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Query param không hợp lệ", content = {
+                    @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class)),
+                    @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập ví", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<MonthlyReportDetailResponse> getCurrentMonthReport(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(description = "Lọc theo ví", example = "1")
             @RequestParam(required = false) @Positive(message = "walletId must be positive") Long walletId,
+            @Parameter(description = "Lọc theo loại giao dịch", example = "EXPENSE")
             @RequestParam(required = false)
             @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME")
             String type) {
