@@ -1,8 +1,19 @@
 package com.j2ee.backend.controller;
 
 import com.j2ee.backend.dto.request.CategoryCreateRequest;
+import com.j2ee.backend.dto.response.ApiErrorResponse;
+import com.j2ee.backend.dto.response.ApiValidationErrorResponse;
 import com.j2ee.backend.dto.response.CategoryResponse;
 import com.j2ee.backend.service.CategoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +28,8 @@ import java.util.List;
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Category", description = "API quản lý danh mục thu/chi.")
+@SecurityRequirement(name = "bearerAuth")
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -25,8 +38,16 @@ public class CategoryController {
      * GET /api/categories - Lấy tất cả categories (default + custom của user)
      */
     @GetMapping
+    @Operation(summary = "Lấy danh sách category", description = "Lấy toàn bộ category hoặc lọc theo type.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lấy dữ liệu thành công", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CategoryResponse.class)))),
+            @ApiResponse(responseCode = "400", description = "Query param không hợp lệ", content = @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<List<CategoryResponse>> getAllCategories(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(description = "Lọc theo loại category", example = "EXPENSE")
             @RequestParam(required = false) @Pattern(regexp = "^(EXPENSE|INCOME)$", message = "type must be EXPENSE or INCOME") String type) {
         String username = authentication.getName();
 
@@ -41,7 +62,15 @@ public class CategoryController {
      * GET /api/categories/{id} - Lấy thông tin 1 category
      */
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponse> getCategory(@PathVariable Long id) {
+    @Operation(summary = "Lấy chi tiết category theo ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lấy dữ liệu thành công", content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
+            @ApiResponse(responseCode = "400", description = "ID không hợp lệ hoặc không tìm thấy category", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
+    public ResponseEntity<CategoryResponse> getCategory(
+            @Parameter(description = "ID category", example = "10") @PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getCategory(id));
     }
 
@@ -49,8 +78,18 @@ public class CategoryController {
      * POST /api/categories - Tạo category custom
      */
     @PostMapping
+    @Operation(summary = "Tạo category custom")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tạo category thành công", content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ", content = {
+                    @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class)),
+                    @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<CategoryResponse> createCategory(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
             @Valid @RequestBody CategoryCreateRequest request) {
         String username = authentication.getName();
         return ResponseEntity.ok(categoryService.createCategory(username, request));
@@ -60,8 +99,16 @@ public class CategoryController {
      * DELETE /api/categories/{id} - Xóa custom category
      */
     @DeleteMapping("/{id}")
+    @Operation(summary = "Xóa category custom")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Xóa category thành công"),
+            @ApiResponse(responseCode = "400", description = "Không thể xóa category", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     public ResponseEntity<Void> deleteCategory(
-            Authentication authentication,
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(description = "ID category", example = "10")
             @PathVariable Long id) {
         String username = authentication.getName();
         categoryService.deleteCategory(username, id);

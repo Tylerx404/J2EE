@@ -6,6 +6,7 @@ import com.j2ee.backend.entity.User;
 import com.j2ee.backend.repository.AiAdviceLogRepository;
 import com.j2ee.backend.repository.TransactionRepository;
 import com.j2ee.backend.repository.UserRepository;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -156,10 +157,15 @@ public class AiService {
      * DTO cho dữ liệu transaction từ voice
      */
     @lombok.Data
+    @Schema(name = "VoiceTransactionData", description = "Kết quả phân tích giao dịch từ voice text.")
     public static class VoiceTransactionData {
+        @Schema(description = "Loại giao dịch được nhận diện.", allowableValues = { "INCOME", "EXPENSE" }, example = "EXPENSE")
         private String type; // INCOME hoặc EXPENSE
+        @Schema(description = "Số tiền được nhận diện.", example = "50000")
         private BigDecimal amount;
+        @Schema(description = "Nội dung ghi chú giữ nguyên từ voice text.", example = "Chi 50 nghìn tiền cafe")
         private String note;
+        @Schema(description = "Category gợi ý (có thể null).", example = "10")
         private Long categoryId; // Optional
     }
 }

@@ -32,6 +32,8 @@ public class SecurityConfig {
                                                                                                               // JWT
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // CHO PHÉP register/login KHÔNG CẦN AUTH
+                        .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                        .permitAll() // CHO PHÉP tài liệu OpenAPI/Swagger
                         .requestMatchers("/oauth2/**").permitAll() // nếu có Google OAuth
                         .anyRequest().authenticated() // các API khác cần JWT
                 );
