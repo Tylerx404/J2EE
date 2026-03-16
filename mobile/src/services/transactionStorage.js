@@ -1,39 +1,20 @@
-// === SECTION 1: IMPORTS ===
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// src/services/transactionService.js
+import { apiRequest } from './apiClient';
 
-// === SECTION 2: CONFIG ===
-const TRANSACTION_KEY = '@transactions';
-
-// === SECTION 3: STORAGE METHODS ===
-
-// Lấy danh sách giao dịch
-export const getTransactions = async () => {
-    try {
-        const jsonValue = await AsyncStorage.getItem(TRANSACTION_KEY);
-        return jsonValue != null ? JSON.parse(jsonValue) : [];
-    } catch (e) {
-        console.error('Lỗi khi đọc giao dịch:', e);
-        return [];
-    }
+// Lấy danh sách giao dịch từ Backend
+export const getTransactionsFromBackend = async () => {
+    return await apiRequest('/transactions');
 };
 
-// Lưu giao dịch mới (Thêm vào đầu danh sách)
-export const saveTransaction = async (newTransaction) => {
-    try {
-        const existingData = await getTransactions();
-        const updatedData = [newTransaction, ...existingData];
-        await AsyncStorage.setItem(TRANSACTION_KEY, JSON.stringify(updatedData));
-        return updatedData;
-    } catch (e) {
-        console.error('Lỗi khi lưu giao dịch:', e);
-    }
-};
-
-// Xoá toàn bộ (Dùng khi muốn reset app)
-export const clearAllTransactions = async () => {
-    try {
-        await AsyncStorage.removeItem(TRANSACTION_KEY);
-    } catch (e) {
-        console.error('Lỗi khi xoá dữ liệu:', e);
-    }
+// Lưu giao dịch mới lên Backend
+export const createTransactionOnBackend = async (transactionData) => {
+    return await apiRequest('/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+            title: transactionData.title,
+            amount: transactionData.amount,
+            categoryName: transactionData.category, // Backend nhận categoryName để xử lý
+            walletId: 1 // Tạm thời set 1 cho ví mặc định
+        }),
+    });
 };
