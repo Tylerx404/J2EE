@@ -1,37 +1,23 @@
-// === SECTION 1: IMPORTS ===
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
-import { LucideTrash2 } from 'lucide-react-native';
-import { styles } from './css/DeleteCategoryModalStyles';
+import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { COLORS } from '../theme/colors';
 
-// === SECTION 2: CONFIG & UI CONSTANTS ===
-
-
-// === SECTION 3: MODAL LOGIC ===
 const DeleteCategoryModal = ({ visible, onClose, onConfirm, categoryName }) => {
-    // === SECTION 4: MODAL RENDER ===
     return (
         <Modal transparent visible={visible} animationType="fade">
             <View style={styles.overlay}>
-                <View style={styles.content}>
-                    {/* Icon Thùng rác nền đỏ nhạt */}
-                    <View style={styles.iconBg}>
-                        <LucideTrash2 size={28} color="#EF4444" />
-                    </View>
-
-                    <Text style={styles.title}>Xoá hạng mục?</Text>
-
-                    <Text style={styles.subtitle}>
-                        Bạn có chắc muốn xoá "<Text style={styles.boldText}>{categoryName}</Text>"? Hành động này không thể hoàn tác.
+                <View style={styles.card}>
+                    <Text style={styles.title}>Xóa hạng mục?</Text>
+                    <Text style={styles.desc}>
+                        Bạn có chắc muốn xóa {categoryName ? `"${categoryName}"` : 'hạng mục này'} không?
                     </Text>
 
-                    {/* Hai nút Huỷ / Xoá */}
-                    <View style={styles.buttonRow}>
-                        <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
-                            <Text style={styles.btnTextCancel}>Huỷ</Text>
+                    <View style={styles.actions}>
+                        <TouchableOpacity style={styles.btnGhost} onPress={onClose}>
+                            <Text style={styles.btnGhostText}>Hủy</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.btnDelete} onPress={onConfirm}>
-                            <Text style={styles.btnTextDelete}>Xoá</Text>
+                        <TouchableOpacity style={styles.btnDanger} onPress={onConfirm}>
+                            <Text style={styles.btnDangerText}>Xóa</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -39,5 +25,44 @@ const DeleteCategoryModal = ({ visible, onClose, onConfirm, categoryName }) => {
         </Modal>
     );
 };
+
+const styles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+    },
+    card: {
+        width: '100%',
+        backgroundColor: COLORS.cardBg,
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    title: { fontSize: 18, fontWeight: '700', color: COLORS.textMain, marginBottom: 8 },
+    desc: { fontSize: 13, color: COLORS.textSub, marginBottom: 18 },
+    actions: { flexDirection: 'row', gap: 10 },
+    btnGhost: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    btnGhostText: { color: COLORS.textSub, fontWeight: '600' },
+    btnDanger: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+        backgroundColor: COLORS.danger,
+    },
+    btnDangerText: { color: '#fff', fontWeight: '700' },
+});
 
 export default DeleteCategoryModal;
