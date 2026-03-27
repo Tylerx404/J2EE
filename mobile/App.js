@@ -126,9 +126,10 @@ export default function App() {
         />
         <Tab.Screen
           name="Reports"
-          component={ReportScreen}
           options={{ tabBarIcon: ({ color }) => <LucidePieChart color={color} size={24} /> }}
-        />
+        >
+          {(props) => <ReportScreen {...props} sessionMode={sessionMode} />}
+        </Tab.Screen>
         <Tab.Screen
           name="Category"
           component={CategoryScreen}
