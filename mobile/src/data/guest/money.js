@@ -10,9 +10,10 @@ const splitDecimal = (value) => {
     const [wholeRaw = '0', decimalRaw = ''] = unsigned.split('.');
     const whole = wholeRaw.replace(/\D/g, '') || '0';
     const decimal = `${decimalRaw.replace(/\D/g, '')}00`.slice(0, 2);
+    const absoluteCents = BigInt(whole) * 100n + BigInt(decimal);
     return {
         negative,
-        cents: BigInt(whole) * 100n + BigInt(decimal),
+        cents: negative ? -absoluteCents : absoluteCents,
     };
 };
 

@@ -92,7 +92,7 @@ export const seedGuestDataIfNeeded = async () => {
         }
 
         await setMetaValue(db, META_KEYS.SEEDED_AT, timestamp);
-        await setMetaValue(db, META_KEYS.SCHEMA_VERSION, '1');
+        await setMetaValue(db, META_KEYS.SCHEMA_VERSION, '2');
     });
 
     return true;

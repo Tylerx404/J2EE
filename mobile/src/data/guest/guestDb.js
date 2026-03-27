@@ -1,7 +1,9 @@
 import { openDatabaseAsync } from 'expo-sqlite';
+import { nowIso } from './date';
+import { applyTransactionBalanceChange } from './rules';
 
 const DATABASE_NAME = 'guest_finance.db';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 let dbPromise;
 
@@ -65,6 +67,45 @@ CREATE INDEX IF NOT EXISTS idx_transactions_category
 ON transactions(category_local_id);
 `;
 
+const rebuildWalletBalances = async (db) => {
+    const wallets = await db.getAllAsync('SELECT local_id, initial_balance FROM wallets');
+    const transactions = await db.getAllAsync(
+        `
+        SELECT wallet_local_id, amount, type
+        FROM transactions
+        ORDER BY transaction_date ASC, created_at ASC
+        `
+    );
+
+    const nextBalances = new Map(
+        wallets.map((wallet) => [wallet.local_id, String(wallet.initial_balance ?? '0')])
+    );
+
+    transactions.forEach((transaction) => {
+        const currentBalance = nextBalances.get(transaction.wallet_local_id);
+        if (currentBalance === undefined) {
+            return;
+        }
+
+        nextBalances.set(
+            transaction.wallet_local_id,
+            applyTransactionBalanceChange(currentBalance, transaction.amount, transaction.type)
+        );
+    });
+
+    const timestamp = nowIso();
+    await db.withTransactionAsync(async () => {
+        for (const wallet of wallets) {
+            await db.runAsync(
+                'UPDATE wallets SET balance = ?, updated_at = ? WHERE local_id = ?',
+                nextBalances.get(wallet.local_id) ?? String(wallet.initial_balance ?? '0'),
+                timestamp,
+                wallet.local_id
+            );
+        }
+    });
+};
+
 export const getGuestDb = async () => {
     if (!dbPromise) {
         dbPromise = openDatabaseAsync(DATABASE_NAME);
@@ -78,11 +119,12 @@ export const migrateGuestDb = async (db) => {
     const result = await db.getFirstAsync('PRAGMA user_version;');
     const currentVersion = result?.user_version ?? 0;
 
-    if (currentVersion >= DATABASE_VERSION) {
-        return db;
+    await db.execAsync(SCHEMA_SQL);
+
+    if (currentVersion < 2) {
+        await rebuildWalletBalances(db);
     }
 
-    await db.execAsync(SCHEMA_SQL);
     await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
     return db;
 };
