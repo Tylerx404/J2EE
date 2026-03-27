@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -19,6 +20,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import WalletScreen from './src/screens/WalletScreen';
+import { initGuestDb } from './src/data/guest/guestDb';
 import { getSessionMode, SESSION_MODES, startGuestSession } from './src/services/sessionService';
 
 const Tab = createBottomTabNavigator();
@@ -54,6 +56,16 @@ export default function App() {
 
     hydrateSession();
   }, []);
+
+  useEffect(() => {
+    if (!isGuest) return;
+
+    initGuestDb().catch((error) => {
+      console.error('Guest DB init error:', error);
+      Alert.alert('Loi', 'Khong khoi tao duoc bo nho local cho guest mode.');
+      setSessionMode(SESSION_MODES.LOGGED_OUT);
+    });
+  }, [isGuest]);
 
   if (!isAuthenticated && !isGuest) {
     if (showRegister) {
