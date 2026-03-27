@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { env } from '../config/env';
 
-// IP mới theo log Metro của Hiệp
-// const BASE_URL = 'http://192.168.2.14:8081/api';
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = env.apiUrl;
 
 export const apiRequest = async (endpoint, options = {}) => {
     try {
