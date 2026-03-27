@@ -79,16 +79,32 @@ export const styles = StyleSheet.create({
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     legendLine: { width: 20, height: 3, borderRadius: 2 },
     legendText: { fontSize: 11, color: '#9CA3AF' },
-    chartContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 10, marginLeft: -20 },
+    chartContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 10 },
     lineChartStyle: { marginVertical: 8, borderRadius: 16 },
     tooltipBox: { position: 'absolute', backgroundColor: '#1F2937', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 },
     tooltipText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
 
     // BIỂU ĐỒ TRÒN DONUT
-    donutContainer: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
-    donutCenterLabel: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+    donutContainer: { alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 240 },
+    donutChartWrap: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    donutCenterLabel: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
     donutCenterText: { fontSize: 12, color: '#9CA3AF' },
     donutCenterAmount: { fontSize: 18, fontWeight: 'bold', color: '#1F2937' },
+    emptyDonut: {
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        borderWidth: 14,
+        borderColor: '#E5E7EB',
+        backgroundColor: '#F9FAFB',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    emptyDonutHint: { fontSize: 11, color: '#9CA3AF', marginTop: 4 },
     customLegendContainer: { marginTop: 20, paddingHorizontal: 10 },
     legendRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     legendLeft: { flexDirection: 'row', alignItems: 'center' },
