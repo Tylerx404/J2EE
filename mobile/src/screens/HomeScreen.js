@@ -19,9 +19,9 @@ import TransactionItem from '../components/TransactionItem';
 import { COLORS } from '../theme/colors';
 import { logout } from '../services/authService';
 import { parseVoiceToTransaction } from '../services/aiService';
-import { getCategoriesFromBackend } from '../services/categoryService';
-import { createTransactionOnBackend, getTransactionsFromBackend } from '../services/transactionService';
-import { getWalletsFromBackend } from '../services/walletService';
+import { getCategories } from '../services/categoryService';
+import { createTransaction, getTransactions } from '../services/transactionService';
+import { getWallets } from '../services/walletService';
 import { styles } from './css/HomeScreenStyles';
 
 const formatDate = (value) => {
@@ -60,9 +60,9 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
     const loadAllData = async () => {
         try {
             const [txData, catData, walletData] = await Promise.all([
-                getTransactionsFromBackend(),
-                getCategoriesFromBackend(),
-                getWalletsFromBackend(),
+                getTransactions(),
+                getCategories(),
+                getWallets(),
             ]);
 
             const normalizedTransactions = txData.slice(0, 5).map((item) => ({
@@ -118,7 +118,7 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
             throw new Error('Chua tim thay vi de luu giao dich.');
         }
 
-        await createTransactionOnBackend({
+        await createTransaction({
             walletId: nextWalletId,
             categoryId: categoryId || null,
             amount: finalAmount,

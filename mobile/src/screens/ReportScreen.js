@@ -5,7 +5,7 @@ import { LucideChevronLeft, LucideChevronDown, LucideAlertTriangle, LucideLightb
 import { styles } from './css/ReportScreenStyles';
 import { COLORS } from '../theme/colors';
 import { LineChart, PieChart } from "react-native-chart-kit";
-import { getCurrentMonthReportFromBackend } from '../services/reportService';
+import { getCurrentMonthReport } from '../services/reportService';
 import { generateAiAdvice, getAiAdviceHistory } from '../services/aiService';
 
 // === SECTION 2: CONSTANTS ===
@@ -73,7 +73,7 @@ const ReportScreen = () => {
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const responseData = await getCurrentMonthReportFromBackend();
+            const responseData = await getCurrentMonthReport();
 
             // 1. Cập nhật ngày tháng báo cáo
             setReportDate({ month: responseData.month, year: responseData.year });
