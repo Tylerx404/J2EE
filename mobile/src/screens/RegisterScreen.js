@@ -3,7 +3,7 @@ import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'reac
 import { register } from '../services/authService';
 import { COLORS } from '../theme/colors';
 
-const RegisterScreen = ({ onRegisterSuccess, onBackToLogin }) => {
+const RegisterScreen = ({ onRegisterSuccess, onBackToLogin, onBack }) => {
     const [form, setForm] = useState({ username: '', email: '', password: '', fullName: '' });
 
     const handleRegister = async () => {
@@ -24,6 +24,12 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin }) => {
 
     return (
         <View style={styles.container}>
+            {onBack ? (
+                <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                    <Text style={styles.backButtonText}>Quay lai</Text>
+                </TouchableOpacity>
+            ) : null}
+
             <Text style={styles.title}>Tao tai khoan moi</Text>
 
             <TextInput
@@ -67,6 +73,8 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', padding: 30, backgroundColor: '#fff' },
+    backButton: { position: 'absolute', top: 56, left: 24, padding: 8 },
+    backButtonText: { color: COLORS.primary, fontWeight: '600' },
     title: { fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'center', color: COLORS.primary },
     input: { borderBottomWidth: 1, borderColor: '#ccc', paddingVertical: 10, marginBottom: 20 },
     button: { backgroundColor: COLORS.primary, padding: 15, borderRadius: 10, alignItems: 'center' },

@@ -34,7 +34,7 @@ const Tab = createBottomTabNavigator();
 
 export default function App() {
   const [sessionMode, setSessionMode] = useState(SESSION_MODES.LOGGED_OUT);
-  const [showRegister, setShowRegister] = useState(false);
+  const [authView, setAuthView] = useState(null);
   const isGuest = sessionMode === SESSION_MODES.GUEST;
   const isAuthenticated = sessionMode === SESSION_MODES.AUTHENTICATED;
 
@@ -83,6 +83,7 @@ export default function App() {
 
   const handleAuthenticatedEntry = async () => {
     setSessionMode(SESSION_MODES.AUTHENTICATED);
+    setAuthView(null);
 
     const shouldPromptImport = await hasGuestDataToImport();
     if (!shouldPromptImport) {
@@ -122,11 +123,11 @@ export default function App() {
   };
 
   if (!isAuthenticated && !isGuest) {
-    if (showRegister) {
+    if (authView === 'register') {
       return (
         <RegisterScreen
           onRegisterSuccess={handleAuthenticatedEntry}
-          onBackToLogin={() => setShowRegister(false)}
+          onBackToLogin={() => setAuthView('login')}
         />
       );
     }
@@ -138,7 +139,28 @@ export default function App() {
           await startGuestSession();
           setSessionMode(SESSION_MODES.GUEST);
         }}
-        onGoToRegister={() => setShowRegister(true)}
+        onGoToRegister={() => setAuthView('register')}
+      />
+    );
+  }
+
+  if (isGuest && authView === 'login') {
+    return (
+      <LoginScreen
+        onLoginSuccess={handleAuthenticatedEntry}
+        onGoToRegister={() => setAuthView('register')}
+        onBack={() => setAuthView(null)}
+        showGuestEntry={false}
+      />
+    );
+  }
+
+  if (isGuest && authView === 'register') {
+    return (
+      <RegisterScreen
+        onRegisterSuccess={handleAuthenticatedEntry}
+        onBackToLogin={() => setAuthView('login')}
+        onBack={() => setAuthView(null)}
       />
     );
   }
@@ -186,19 +208,21 @@ export default function App() {
           component={WalletScreen}
           options={{ tabBarIcon: ({ color }) => <LucideWallet color={color} size={24} /> }}
         />
-        {!isGuest ? (
-          <Tab.Screen
-            name="Profile"
-            options={{ tabBarIcon: ({ color }) => <LucideUser color={color} size={24} /> }}
-          >
-            {(props) => (
-              <ProfileScreen
-                {...props}
-                onLogout={() => setSessionMode(SESSION_MODES.LOGGED_OUT)}
-              />
-            )}
-          </Tab.Screen>
-        ) : null}
+        <Tab.Screen
+          name="Profile"
+          options={{ tabBarIcon: ({ color }) => <LucideUser color={color} size={24} /> }}
+        >
+          {(props) => (
+            <ProfileScreen
+              {...props}
+              sessionMode={sessionMode}
+              onGoToLogin={() => setAuthView('login')}
+              onGoToRegister={() => setAuthView('register')}
+              onContinueLocal={() => setAuthView(null)}
+              onLogout={() => setSessionMode(SESSION_MODES.LOGGED_OUT)}
+            />
+          )}
+        </Tab.Screen>
       </Tab.Navigator>
     </NavigationContainer>
   );
