@@ -5,7 +5,8 @@ import { LucideChevronLeft, LucideChevronDown, LucideAlertTriangle, LucideLightb
 import { styles } from './css/ReportScreenStyles';
 import { COLORS } from '../theme/colors';
 import { LineChart, PieChart } from "react-native-chart-kit";
-import { apiRequest } from '../services/apiClient';
+import { getCurrentMonthReportFromBackend } from '../services/reportService';
+import { generateAiAdvice, getAiAdviceHistory } from '../services/aiService';
 
 // === SECTION 2: CONSTANTS ===
 const GLOBAL_BUDGET = 5000000;
@@ -25,6 +26,7 @@ const ReportScreen = () => {
     const [activeTrendTab, setActiveTrendTab] = useState('Xu hướng chi tiêu');
     const [reportDate, setReportDate] = useState({ month: '--', year: '----' });
     const [loading, setLoading] = useState(true);
+    const [aiAdviceText, setAiAdviceText] = useState('Đang tải gợi ý AI...');
 
     // Dữ liệu mẫu cho LineChart (Chờ API xu hướng từ Backend)
     const trendData = [
@@ -68,7 +70,7 @@ const ReportScreen = () => {
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const responseData = await apiRequest('/reports/current-month');
+            const responseData = await getCurrentMonthReportFromBackend();
 
             // 1. Cập nhật ngày tháng báo cáo
             setReportDate({ month: responseData.month, year: responseData.year });
@@ -94,6 +96,20 @@ const ReportScreen = () => {
                 newAlerts.push(`Cảnh báo: Bạn đã dùng ${((responseData.totalExpense / GLOBAL_BUDGET) * 100).toFixed(0)}% tổng ngân sách!`);
             }
             setAlerts(newAlerts);
+
+            const period = `${responseData.year}-${String(responseData.month).padStart(2, '0')}`;
+            try {
+                const history = await getAiAdviceHistory();
+                const latestAdvice = history?.[0]?.adviceText;
+                if (latestAdvice) {
+                    setAiAdviceText(latestAdvice);
+                } else {
+                    const generated = await generateAiAdvice(period);
+                    setAiAdviceText(generated?.adviceText || 'Chưa có gợi ý AI.');
+                }
+            } catch (adviceError) {
+                setAiAdviceText(`Không tải được gợi ý AI: ${adviceError.message}`);
+            }
 
         } catch (error) {
             console.warn("Lỗi kết nối Backend:", error.message);
@@ -189,7 +205,10 @@ const ReportScreen = () => {
                     <View style={styles.sectionHeader}><LucideLightbulb size={18} color="#10B981" /><Text style={styles.sectionTitle}> Gợi ý từ AI</Text></View>
                     <TouchableOpacity style={styles.suggestionCard}>
                         <View style={styles.suggestIcon}><Text style={{ color: '#fff', fontWeight: 'bold' }}>AI</Text></View>
-                        <View style={{ flex: 1 }}><Text style={styles.suggestTitle}>Cân nhắc giảm chi phí Ăn uống</Text><Text style={styles.suggestAmount}>Tiết kiệm ~200.000đ/tháng</Text></View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.suggestTitle} numberOfLines={2}>{aiAdviceText}</Text>
+                            <Text style={styles.suggestAmount}>Nguồn: /api/ai/advice/history</Text>
+                        </View>
                     </TouchableOpacity>
 
                     <View style={{ height: 100 }} />
