@@ -16,7 +16,7 @@ const LoginScreen = ({ onLoginSuccess, onGoToRegister, onContinueAsGuest }) => {
         try {
             const data = await login(account, password);
             Alert.alert('Thanh cong', `Chao mung ${data.name}!`);
-            onLoginSuccess();
+            await onLoginSuccess?.();
         } catch (error) {
             Alert.alert('Loi dang nhap', error.message);
         }

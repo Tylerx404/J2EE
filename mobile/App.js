@@ -21,7 +21,13 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import WalletScreen from './src/screens/WalletScreen';
 import { initGuestDb } from './src/data/guest/guestDb';
-import { seedGuestDataIfNeeded } from './src/data/guest/seed';
+import {
+  buildGuestImportPayload,
+  keepGuestImportSeparate,
+  markGuestImportPending,
+  postponeGuestImport,
+} from './src/data/guest/import';
+import { hasGuestDataToImport, seedGuestDataIfNeeded } from './src/data/guest/seed';
 import { getSessionMode, SESSION_MODES, startGuestSession } from './src/services/sessionService';
 
 const Tab = createBottomTabNavigator();
@@ -75,11 +81,51 @@ export default function App() {
     prepareGuestStorage();
   }, [isGuest]);
 
+  const handleAuthenticatedEntry = async () => {
+    setSessionMode(SESSION_MODES.AUTHENTICATED);
+
+    const shouldPromptImport = await hasGuestDataToImport();
+    if (!shouldPromptImport) {
+      return;
+    }
+
+    Alert.alert(
+      'Du lieu guest local',
+      'Da tim thay du lieu local chua import. Ban muon xu ly the nao?',
+      [
+        {
+          text: 'Import du lieu local',
+          onPress: async () => {
+            const payload = await buildGuestImportPayload();
+            const summary = await markGuestImportPending(payload);
+            Alert.alert(
+              'Da chuan bi import',
+              `Wallet: ${summary.walletCount}, category: ${summary.categoryCount}, transaction: ${summary.transactionCount}.`
+            );
+          },
+        },
+        {
+          text: 'Giu rieng',
+          onPress: async () => {
+            await keepGuestImportSeparate();
+          },
+        },
+        {
+          text: 'De sau',
+          style: 'cancel',
+          onPress: async () => {
+            await postponeGuestImport();
+          },
+        },
+      ]
+    );
+  };
+
   if (!isAuthenticated && !isGuest) {
     if (showRegister) {
       return (
         <RegisterScreen
-          onRegisterSuccess={() => setSessionMode(SESSION_MODES.AUTHENTICATED)}
+          onRegisterSuccess={handleAuthenticatedEntry}
           onBackToLogin={() => setShowRegister(false)}
         />
       );
@@ -87,7 +133,7 @@ export default function App() {
 
     return (
       <LoginScreen
-        onLoginSuccess={() => setSessionMode(SESSION_MODES.AUTHENTICATED)}
+        onLoginSuccess={handleAuthenticatedEntry}
         onContinueAsGuest={async () => {
           await startGuestSession();
           setSessionMode(SESSION_MODES.GUEST);
