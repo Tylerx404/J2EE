@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -58,89 +60,114 @@ const AddTransactionModal = ({
     return (
         <Modal visible={visible} transparent animationType="slide">
             <View style={styles.overlay}>
-                <View style={styles.card}>
-                    <View style={styles.handle} />
-                    <Text style={styles.title}>Them giao dich thu cong</Text>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={styles.keyboardWrap}
+                >
+                    <View style={styles.card}>
+                        <View style={styles.handle} />
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={styles.scrollContent}
+                        >
+                            <Text style={styles.title}>Them giao dich thu cong</Text>
 
-                    <Text style={styles.label}>Loai giao dich</Text>
-                    <View style={styles.row}>
-                        {TYPE_OPTIONS.map((item) => (
-                            <TouchableOpacity
-                                key={item.value}
-                                style={[styles.chip, type === item.value && styles.chipActive]}
-                                onPress={() => setType(item.value)}
+                            <Text style={styles.label}>Loai giao dich</Text>
+                            <View style={styles.row}>
+                                {TYPE_OPTIONS.map((item) => (
+                                    <TouchableOpacity
+                                        key={item.value}
+                                        style={[styles.chip, type === item.value && styles.chipActive]}
+                                        onPress={() => setType(item.value)}
+                                    >
+                                        <Text style={[styles.chipText, type === item.value && styles.chipTextActive]}>
+                                            {item.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <Text style={styles.label}>Vi</Text>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                keyboardShouldPersistTaps="handled"
+                                contentContainerStyle={styles.row}
                             >
-                                <Text style={[styles.chipText, type === item.value && styles.chipTextActive]}>
-                                    {item.label}
-                                </Text>
+                                {wallets.map((wallet) => (
+                                    <TouchableOpacity
+                                        key={wallet.id}
+                                        style={[styles.chip, walletId === wallet.id && styles.chipActive]}
+                                        onPress={() => setWalletId(wallet.id)}
+                                    >
+                                        <Text style={[styles.chipText, walletId === wallet.id && styles.chipTextActive]}>
+                                            {wallet.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+
+                            <Text style={styles.label}>So tien</Text>
+                            <TextInput
+                                style={styles.input}
+                                keyboardType="numeric"
+                                placeholder="Vi du: 50000"
+                                value={amount}
+                                onChangeText={setAmount}
+                            />
+
+                            <Text style={styles.label}>Ghi chu</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nhap ghi chu"
+                                value={note}
+                                onChangeText={setNote}
+                            />
+
+                            <Text style={styles.label}>Hang muc</Text>
+                            {filteredCategories.length > 0 ? (
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    keyboardShouldPersistTaps="handled"
+                                    contentContainerStyle={styles.row}
+                                >
+                                    {filteredCategories.map((category) => (
+                                        <TouchableOpacity
+                                            key={category.id}
+                                            style={[styles.chip, categoryId === category.id && styles.chipActive]}
+                                            onPress={() => setCategoryId(category.id)}
+                                        >
+                                            <Text style={[styles.chipText, categoryId === category.id && styles.chipTextActive]}>
+                                                {category.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            ) : (
+                                <Text style={styles.emptyText}>Chua co hang muc phu hop cho loai giao dich nay.</Text>
+                            )}
+
+                            <TouchableOpacity
+                                style={styles.primaryButton}
+                                onPress={() => onSave?.({
+                                    walletId,
+                                    categoryId,
+                                    amount,
+                                    type,
+                                    note,
+                                    transactionDate: new Date().toISOString().slice(0, 19),
+                                })}
+                            >
+                                <Text style={styles.primaryButtonText}>Luu giao dich</Text>
                             </TouchableOpacity>
-                        ))}
+                            <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
+                                <Text style={styles.secondaryButtonText}>Huy</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
                     </View>
-
-                    <Text style={styles.label}>Vi</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-                        {wallets.map((wallet) => (
-                            <TouchableOpacity
-                                key={wallet.id}
-                                style={[styles.chip, walletId === wallet.id && styles.chipActive]}
-                                onPress={() => setWalletId(wallet.id)}
-                            >
-                                <Text style={[styles.chipText, walletId === wallet.id && styles.chipTextActive]}>
-                                    {wallet.name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-
-                    <Text style={styles.label}>So tien</Text>
-                    <TextInput
-                        style={styles.input}
-                        keyboardType="numeric"
-                        placeholder="Vi du: 50000"
-                        value={amount}
-                        onChangeText={setAmount}
-                    />
-
-                    <Text style={styles.label}>Ghi chu</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nhap ghi chu"
-                        value={note}
-                        onChangeText={setNote}
-                    />
-
-                    <Text style={styles.label}>Hang muc</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-                        {filteredCategories.map((category) => (
-                            <TouchableOpacity
-                                key={category.id}
-                                style={[styles.chip, categoryId === category.id && styles.chipActive]}
-                                onPress={() => setCategoryId(category.id)}
-                            >
-                                <Text style={[styles.chipText, categoryId === category.id && styles.chipTextActive]}>
-                                    {category.name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-
-                    <TouchableOpacity
-                        style={styles.primaryButton}
-                        onPress={() => onSave?.({
-                            walletId,
-                            categoryId,
-                            amount,
-                            type,
-                            note,
-                            transactionDate: new Date().toISOString().slice(0, 19),
-                        })}
-                    >
-                        <Text style={styles.primaryButtonText}>Luu giao dich</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
-                        <Text style={styles.secondaryButtonText}>Huy</Text>
-                    </TouchableOpacity>
-                </View>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     );
@@ -152,6 +179,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.35)',
         justifyContent: 'flex-end',
     },
+    keyboardWrap: {
+        justifyContent: 'flex-end',
+    },
     card: {
         backgroundColor: COLORS.cardBg,
         borderTopLeftRadius: 24,
@@ -159,6 +189,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 12,
         paddingBottom: 24,
+        maxHeight: '88%',
+    },
+    scrollContent: {
+        paddingBottom: 8,
     },
     handle: {
         alignSelf: 'center',
@@ -203,6 +237,11 @@ const styles = StyleSheet.create({
     },
     chipTextActive: {
         color: COLORS.primary,
+    },
+    emptyText: {
+        color: COLORS.textLight,
+        fontSize: 13,
+        lineHeight: 18,
     },
     input: {
         borderWidth: 1,

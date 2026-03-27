@@ -177,7 +177,10 @@ export default function App() {
       >
         <Tab.Screen
           name="Budget"
-          options={{ tabBarIcon: ({ color }) => <LucideLayoutDashboard color={color} size={24} /> }}
+          options={{
+            tabBarLabel: 'Tong quan',
+            tabBarIcon: ({ color }) => <LucideLayoutDashboard color={color} size={24} />,
+          }}
         >
           {(props) => (
             <HomeScreen
@@ -190,27 +193,42 @@ export default function App() {
         <Tab.Screen
           name="History"
           component={HistoryScreen}
-          options={{ tabBarIcon: ({ color }) => <LucideHistory color={color} size={24} /> }}
+          options={{
+            tabBarLabel: 'Lich su',
+            tabBarIcon: ({ color }) => <LucideHistory color={color} size={24} />,
+          }}
         />
         <Tab.Screen
           name="Reports"
-          options={{ tabBarIcon: ({ color }) => <LucidePieChart color={color} size={24} /> }}
+          options={{
+            tabBarLabel: 'Bao cao',
+            tabBarIcon: ({ color }) => <LucidePieChart color={color} size={24} />,
+          }}
         >
           {(props) => <ReportScreen {...props} sessionMode={sessionMode} />}
         </Tab.Screen>
         <Tab.Screen
           name="Category"
           component={CategoryScreen}
-          options={{ tabBarIcon: ({ color }) => <LucideTags color={color} size={24} /> }}
+          options={{
+            tabBarLabel: 'Hang muc',
+            tabBarIcon: ({ color }) => <LucideTags color={color} size={24} />,
+          }}
         />
         <Tab.Screen
           name="Wallets"
           component={WalletScreen}
-          options={{ tabBarIcon: ({ color }) => <LucideWallet color={color} size={24} /> }}
+          options={{
+            tabBarLabel: 'Vi',
+            tabBarIcon: ({ color }) => <LucideWallet color={color} size={24} />,
+          }}
         />
         <Tab.Screen
           name="Profile"
-          options={{ tabBarIcon: ({ color }) => <LucideUser color={color} size={24} /> }}
+          options={{
+            tabBarLabel: 'Ho so',
+            tabBarIcon: ({ color }) => <LucideUser color={color} size={24} />,
+          }}
         >
           {(props) => (
             <ProfileScreen
