@@ -1,46 +1,82 @@
-// App.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { LucideLayoutDashboard, LucideHistory, LucidePieChart, LucideTags, LucideWallet, LucideUser } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  LucideHistory,
+  LucideLayoutDashboard,
+  LucidePieChart,
+  LucideTags,
+  LucideUser,
+  LucideWallet,
+} from 'lucide-react-native';
 
-import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import HistoryScreen from './src/screens/HistoryScreen';
-import ReportScreen from './src/screens/ReportScreen';
 import CategoryScreen from './src/screens/CategoryScreen';
-import WalletScreen from './src/screens/WalletScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import LoginScreen from './src/screens/LoginScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
+import ReportScreen from './src/screens/ReportScreen';
+import WalletScreen from './src/screens/WalletScreen';
+import { getSessionMode, SESSION_MODES, startGuestSession } from './src/services/sessionService';
 
 const Tab = createBottomTabNavigator();
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sessionMode, setSessionMode] = useState(SESSION_MODES.LOGGED_OUT);
   const [showRegister, setShowRegister] = useState(false);
+  const isGuest = sessionMode === SESSION_MODES.GUEST;
+  const isAuthenticated = sessionMode === SESSION_MODES.AUTHENTICATED;
 
   useEffect(() => {
-    const checkToken = async () => {
+    const hydrateSession = async () => {
+      const storedMode = await getSessionMode();
       const token = await AsyncStorage.getItem('jwt_token');
-      if (token) setIsLoggedIn(true);
+
+      if (storedMode === SESSION_MODES.GUEST) {
+        setSessionMode(SESSION_MODES.GUEST);
+        return;
+      }
+
+      if (storedMode === SESSION_MODES.AUTHENTICATED && token) {
+        setSessionMode(SESSION_MODES.AUTHENTICATED);
+        return;
+      }
+
+      if (token) {
+        setSessionMode(SESSION_MODES.AUTHENTICATED);
+        return;
+      }
+
+      setSessionMode(SESSION_MODES.LOGGED_OUT);
     };
-    checkToken();
+
+    hydrateSession();
   }, []);
 
-  // LUỒNG AUTHENTICATION
-  if (!isLoggedIn) {
+  if (!isAuthenticated && !isGuest) {
     if (showRegister) {
-      return <RegisterScreen
-        onRegisterSuccess={() => setIsLoggedIn(true)}
-        onBackToLogin={() => setShowRegister(false)} />;
+      return (
+        <RegisterScreen
+          onRegisterSuccess={() => setSessionMode(SESSION_MODES.AUTHENTICATED)}
+          onBackToLogin={() => setShowRegister(false)}
+        />
+      );
     }
-    return <LoginScreen
-      onLoginSuccess={() => setIsLoggedIn(true)}
-      onGoToRegister={() => setShowRegister(true)} />;
+
+    return (
+      <LoginScreen
+        onLoginSuccess={() => setSessionMode(SESSION_MODES.AUTHENTICATED)}
+        onContinueAsGuest={async () => {
+          await startGuestSession();
+          setSessionMode(SESSION_MODES.GUEST);
+        }}
+        onGoToRegister={() => setShowRegister(true)}
+      />
+    );
   }
 
-  // LUỒNG CHÍNH CỦA APP (TABS)
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -55,20 +91,47 @@ export default function App() {
           name="Budget"
           options={{ tabBarIcon: ({ color }) => <LucideLayoutDashboard color={color} size={24} /> }}
         >
-          {/* Truyền prop onLogout để HomeScreen có thể gọi */}
-          {(props) => <HomeScreen {...props} onLogout={() => setIsLoggedIn(false)} />}
+          {(props) => (
+            <HomeScreen
+              {...props}
+              sessionMode={sessionMode}
+              onLogout={() => setSessionMode(SESSION_MODES.LOGGED_OUT)}
+            />
+          )}
         </Tab.Screen>
-
-        <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarIcon: ({ color }) => <LucideHistory color={color} size={24} /> }} />
-        <Tab.Screen name="Reports" component={ReportScreen} options={{ tabBarIcon: ({ color }) => <LucidePieChart color={color} size={24} /> }} />
-        <Tab.Screen name="Category" component={CategoryScreen} options={{ tabBarIcon: ({ color }) => <LucideTags color={color} size={24} /> }} />
-        <Tab.Screen name="Wallets" component={WalletScreen} options={{ tabBarIcon: ({ color }) => <LucideWallet color={color} size={24} /> }} />
         <Tab.Screen
-          name="Profile"
-          options={{ tabBarIcon: ({ color }) => <LucideUser color={color} size={24} /> }}
-        >
-          {(props) => <ProfileScreen {...props} onLogout={() => setIsLoggedIn(false)} />}
-        </Tab.Screen>
+          name="History"
+          component={HistoryScreen}
+          options={{ tabBarIcon: ({ color }) => <LucideHistory color={color} size={24} /> }}
+        />
+        <Tab.Screen
+          name="Reports"
+          component={ReportScreen}
+          options={{ tabBarIcon: ({ color }) => <LucidePieChart color={color} size={24} /> }}
+        />
+        <Tab.Screen
+          name="Category"
+          component={CategoryScreen}
+          options={{ tabBarIcon: ({ color }) => <LucideTags color={color} size={24} /> }}
+        />
+        <Tab.Screen
+          name="Wallets"
+          component={WalletScreen}
+          options={{ tabBarIcon: ({ color }) => <LucideWallet color={color} size={24} /> }}
+        />
+        {!isGuest ? (
+          <Tab.Screen
+            name="Profile"
+            options={{ tabBarIcon: ({ color }) => <LucideUser color={color} size={24} /> }}
+          >
+            {(props) => (
+              <ProfileScreen
+                {...props}
+                onLogout={() => setSessionMode(SESSION_MODES.LOGGED_OUT)}
+              />
+            )}
+          </Tab.Screen>
+        ) : null}
       </Tab.Navigator>
     </NavigationContainer>
   );
