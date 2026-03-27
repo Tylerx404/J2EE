@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LucideTrash2 } from 'lucide-react-native';
 import { COLORS } from '../theme/colors';
 
 const formatAmount = (amount) => {
@@ -25,7 +26,7 @@ const buildMeta = (category, date) => {
     return parts.join(' - ');
 };
 
-const TransactionItem = ({ title, amount, date, category, type = 'EXPENSE' }) => {
+const TransactionItem = ({ title, amount, date, category, type = 'EXPENSE', onDelete }) => {
     const amountText = applySign(formatAmount(amount), type);
     const metaText = buildMeta(category, date);
     const amountStyle = type === 'INCOME' ? styles.amountIncome : styles.amountExpense;
@@ -36,7 +37,14 @@ const TransactionItem = ({ title, amount, date, category, type = 'EXPENSE' }) =>
                 <Text style={styles.title} numberOfLines={1}>{title}</Text>
                 {metaText ? <Text style={styles.meta} numberOfLines={1}>{metaText}</Text> : null}
             </View>
-            <Text style={[styles.amount, amountStyle]}>{amountText}</Text>
+            <View style={styles.right}>
+                <Text style={[styles.amount, amountStyle]}>{amountText}</Text>
+                {onDelete ? (
+                    <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+                        <LucideTrash2 size={16} color={COLORS.danger} />
+                    </TouchableOpacity>
+                ) : null}
+            </View>
         </View>
     );
 };
@@ -54,11 +62,19 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
     },
     left: { flex: 1, marginRight: 12 },
+    right: { alignItems: 'flex-end', gap: 6 },
     title: { fontSize: 15, fontWeight: '600', color: COLORS.textMain, marginBottom: 4 },
     meta: { fontSize: 12, color: COLORS.textLight },
     amount: { fontSize: 15, fontWeight: '700' },
     amountExpense: { color: COLORS.danger },
     amountIncome: { color: COLORS.success },
+    deleteButton: {
+        padding: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.dangerLight,
+        backgroundColor: COLORS.dangerLight,
+    },
 });
 
 export default TransactionItem;

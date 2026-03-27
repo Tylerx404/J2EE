@@ -1,11 +1,11 @@
 // === SECTION 1: IMPORTS ===
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { LucideSearch, LucideCalendar, LucideArrowUpDown, LucideFilter, LucideArrowLeft } from 'lucide-react-native';
 import TransactionItem from '../components/TransactionItem';
 import { styles } from './css/HistoryScreenStyles';
-import { getTransactionsFromBackend } from '../services/transactionService';
+import { getTransactionsFromBackend, deleteTransactionOnBackend } from '../services/transactionService';
 
 const formatDate = (value) => {
     if (!value) return '';
@@ -64,6 +64,24 @@ const HistoryScreen = () => {
     const now = new Date();
     const monthLabel = now.getMonth() + 1;
     const yearLabel = now.getFullYear();
+
+    const handleDeleteTransaction = (transactionId) => {
+        Alert.alert('Xác nhận', 'Bạn có chắc muốn xóa giao dịch này?', [
+            { text: 'Hủy', style: 'cancel' },
+            {
+                text: 'Xóa',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await deleteTransactionOnBackend(transactionId);
+                        setTransactions((prev) => prev.filter((item) => item.id !== transactionId));
+                    } catch (error) {
+                        Alert.alert('Lỗi', `Không xóa được giao dịch: ${error.message}`);
+                    }
+                },
+            },
+        ]);
+    };
 
     // === SECTION 4: MAIN RENDER ===
     return (
@@ -133,6 +151,7 @@ const HistoryScreen = () => {
                             date={tx.date}
                             category={tx.category}
                             type={tx.type}
+                            onDelete={() => handleDeleteTransaction(tx.id)}
                         />
                     ))
                 ) : (
