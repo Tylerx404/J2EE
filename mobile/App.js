@@ -21,6 +21,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import WalletScreen from './src/screens/WalletScreen';
 import { initGuestDb } from './src/data/guest/guestDb';
+import { seedGuestDataIfNeeded } from './src/data/guest/seed';
 import { getSessionMode, SESSION_MODES, startGuestSession } from './src/services/sessionService';
 
 const Tab = createBottomTabNavigator();
@@ -60,11 +61,18 @@ export default function App() {
   useEffect(() => {
     if (!isGuest) return;
 
-    initGuestDb().catch((error) => {
-      console.error('Guest DB init error:', error);
-      Alert.alert('Loi', 'Khong khoi tao duoc bo nho local cho guest mode.');
-      setSessionMode(SESSION_MODES.LOGGED_OUT);
-    });
+    const prepareGuestStorage = async () => {
+      try {
+        await initGuestDb();
+        await seedGuestDataIfNeeded();
+      } catch (error) {
+        console.error('Guest DB init error:', error);
+        Alert.alert('Loi', 'Khong khoi tao duoc bo nho local cho guest mode.');
+        setSessionMode(SESSION_MODES.LOGGED_OUT);
+      }
+    };
+
+    prepareGuestStorage();
   }, [isGuest]);
 
   if (!isAuthenticated && !isGuest) {
