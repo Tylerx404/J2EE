@@ -25,19 +25,6 @@ export const register = async (username, email, password, fullName) => {
 
 // 2. Hàm Đăng nhập (Login)
 export const login = async (usernameOrEmail, password) => {
-
-    // Bypass cho tài khoản Admin
-    if (usernameOrEmail === 'admin' && password === 'admin123') {
-        const mockAdminData = {
-            token: 'mock-jwt-token-for-admin-only',
-            email: 'admin@j2ee.com',
-            name: 'Admin'
-        };
-        await AsyncStorage.setItem('jwt_token', mockAdminData.token);
-        await AsyncStorage.setItem('user_info', JSON.stringify({ name: mockAdminData.name, email: mockAdminData.email }));
-        return mockAdminData;
-    }
-
     // Gọi API thật đến Backend
     const data = await apiRequest('/auth/login', {
         method: 'POST',
@@ -53,6 +40,27 @@ export const login = async (usernameOrEmail, password) => {
         }));
     }
     return data;
+};
+
+export const loginWithGoogle = async (idToken) => {
+    const data = await apiRequest('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ idToken }),
+    });
+
+    if (data && data.token) {
+        await AsyncStorage.setItem('jwt_token', data.token);
+        await AsyncStorage.setItem('user_info', JSON.stringify({
+            name: data.name || "User",
+            email: data.email
+        }));
+    }
+
+    return data;
+};
+
+export const getMyAuthProfile = async () => {
+    return await apiRequest('/auth/my-profile');
 };
 
 // 3. Hàm Đăng xuất (Logout)

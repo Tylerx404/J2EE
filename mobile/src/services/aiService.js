@@ -20,3 +20,7 @@ export const generateAiAdvice = async (period) => {
         body: JSON.stringify({ period }),
     });
 };
+
+export const getAiAdviceHistory = async () => {
+    return await apiRequest('/ai/advice/history');
+};

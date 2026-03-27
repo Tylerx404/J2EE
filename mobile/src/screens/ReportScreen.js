@@ -5,7 +5,8 @@ import { LucideChevronLeft, LucideChevronDown, LucideAlertTriangle, LucideLightb
 import { styles } from './css/ReportScreenStyles';
 import { COLORS } from '../theme/colors';
 import { LineChart, PieChart } from "react-native-chart-kit";
-import { apiRequest } from '../services/apiClient';
+import { getCurrentMonthReportFromBackend } from '../services/reportService';
+import { generateAiAdvice, getAiAdviceHistory } from '../services/aiService';
 
 // === SECTION 2: CONSTANTS ===
 const GLOBAL_BUDGET = 5000000;
@@ -25,6 +26,7 @@ const ReportScreen = () => {
     const [activeTrendTab, setActiveTrendTab] = useState('Xu hướng chi tiêu');
     const [reportDate, setReportDate] = useState({ month: '--', year: '----' });
     const [loading, setLoading] = useState(true);
+    const [aiAdviceText, setAiAdviceText] = useState('Đang tải gợi ý AI...');
 
     // Dữ liệu mẫu cho LineChart (Chờ API xu hướng từ Backend)
     const trendData = [
@@ -46,8 +48,11 @@ const ReportScreen = () => {
         legendFontColor: "#7F7F7F",
         legendFontSize: 12
     })).sort((a, b) => b.population - a.population);
+    const pieData = dynamicPieData.filter((item) => Number(item.population) > 0);
+    const hasPieData = pieData.length > 0;
 
     const screenWidth = Dimensions.get("window").width;
+    const donutSize = Math.min(screenWidth - 120, 220);
     const chartConfig = {
         backgroundGradientFrom: "#fff", backgroundGradientTo: "#fff",
         color: (opacity = 1) => `rgba(79, 70, 229, ${opacity})`,
@@ -68,7 +73,7 @@ const ReportScreen = () => {
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const responseData = await apiRequest('/reports/current-month');
+            const responseData = await getCurrentMonthReportFromBackend();
 
             // 1. Cập nhật ngày tháng báo cáo
             setReportDate({ month: responseData.month, year: responseData.year });
@@ -94,6 +99,20 @@ const ReportScreen = () => {
                 newAlerts.push(`Cảnh báo: Bạn đã dùng ${((responseData.totalExpense / GLOBAL_BUDGET) * 100).toFixed(0)}% tổng ngân sách!`);
             }
             setAlerts(newAlerts);
+
+            const period = `${responseData.year}-${String(responseData.month).padStart(2, '0')}`;
+            try {
+                const history = await getAiAdviceHistory();
+                const latestAdvice = history?.[0]?.adviceText;
+                if (latestAdvice) {
+                    setAiAdviceText(latestAdvice);
+                } else {
+                    const generated = await generateAiAdvice(period);
+                    setAiAdviceText(generated?.adviceText || 'Chưa có gợi ý AI.');
+                }
+            } catch (adviceError) {
+                setAiAdviceText(`Không tải được gợi ý AI: ${adviceError.message}`);
+            }
 
         } catch (error) {
             console.warn("Lỗi kết nối Backend:", error.message);
@@ -164,14 +183,38 @@ const ReportScreen = () => {
                                 <LineChart data={{ labels: trendData.map(d => d.month), datasets: [{ data: trendData.map(d => d.spent) }] }} width={screenWidth - 80} height={200} chartConfig={chartConfig} bezier style={styles.lineChartStyle} />
                             ) : (
                                 <View style={styles.donutContainer}>
-                                    <PieChart data={dynamicPieData.length > 0 ? dynamicPieData : [{ name: "Trống", population: 1, color: "#eee" }]} width={screenWidth - 40} height={220} chartConfig={chartConfig} accessor={"population"} backgroundColor={"transparent"} paddingLeft={"15"} center={[10, 0]} absolute hasLegend={false} />
-                                    <View style={styles.donutCenterLabel}><Text style={styles.donutCenterText}>Tổng chi</Text><Text style={styles.donutCenterAmount}>{(stats.spent / 1000000).toFixed(1)}Mđ</Text></View>
+                                    {hasPieData ? (
+                                        <View style={styles.donutChartWrap}>
+                                            <PieChart
+                                                data={pieData}
+                                                width={donutSize}
+                                                height={donutSize}
+                                                chartConfig={chartConfig}
+                                                accessor={"population"}
+                                                backgroundColor={"transparent"}
+                                                paddingLeft={"0"}
+                                                center={[0, 0]}
+                                                absolute
+                                                hasLegend={false}
+                                            />
+                                            <View style={styles.donutCenterLabel}>
+                                                <Text style={styles.donutCenterText}>Tổng chi</Text>
+                                                <Text style={styles.donutCenterAmount}>{(stats.spent / 1000000).toFixed(1)}Mđ</Text>
+                                            </View>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.emptyDonut}>
+                                            <Text style={styles.donutCenterText}>Tổng chi</Text>
+                                            <Text style={styles.donutCenterAmount}>0.0Mđ</Text>
+                                            <Text style={styles.emptyDonutHint}>Chưa có dữ liệu chi tiêu</Text>
+                                        </View>
+                                    )}
                                 </View>
                             )}
                         </View>
                         {activeTrendTab === 'Phân loại tháng' && (
                             <View style={styles.customLegendContainer}>
-                                {catStats.sort((a, b) => b.spent - a.spent).map((item, index) => (
+                                {[...catStats].sort((a, b) => b.spent - a.spent).map((item, index) => (
                                     <View key={index} style={styles.legendRow}>
                                         <View style={styles.legendLeft}><View style={[styles.legendDot, { backgroundColor: CATEGORY_COLORS[item.name] || "#CBD5E1" }]} /><Text style={styles.legendName}>{item.name}</Text></View>
                                         <Text style={styles.legendPercent}>{item.percentage.toFixed(0)}%</Text>
@@ -189,7 +232,10 @@ const ReportScreen = () => {
                     <View style={styles.sectionHeader}><LucideLightbulb size={18} color="#10B981" /><Text style={styles.sectionTitle}> Gợi ý từ AI</Text></View>
                     <TouchableOpacity style={styles.suggestionCard}>
                         <View style={styles.suggestIcon}><Text style={{ color: '#fff', fontWeight: 'bold' }}>AI</Text></View>
-                        <View style={{ flex: 1 }}><Text style={styles.suggestTitle}>Cân nhắc giảm chi phí Ăn uống</Text><Text style={styles.suggestAmount}>Tiết kiệm ~200.000đ/tháng</Text></View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.suggestTitle} numberOfLines={2}>{aiAdviceText}</Text>
+                            <Text style={styles.suggestAmount}>Nguồn: /api/ai/advice/history</Text>
+                        </View>
                     </TouchableOpacity>
 
                     <View style={{ height: 100 }} />

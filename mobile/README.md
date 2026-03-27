@@ -1,51 +1,78 @@
-## RUN PROJECT:
-```
-npx expo start
-```
-```
-npm start
-```
-```
-npx run [tên script trong thư mục package]
+## Chạy project
+
+```bash
+npm install
+npm run start
 ```
 
-src/components/: Các UI component dùng chung (Button, Card, Modal).
+## Env cho mobile
 
-src/screens/: Các màn hình chính (Home, VoiceInput, History).
+Mobile dùng:
 
-src/services/: Nơi gọi API cho Backend (Spring Boot) và AI (OpenAI).
+- `APP_ENV`: chọn profile app `development | preview | production`
+- `EXPO_PUBLIC_API_URL`: URL backend public để app gọi API
 
-src/hooks/: Quản lý logic như ghi âm (Recording) hoặc xác thực (Biometric).
+1. Tạo file `.env` từ `.env.example`
+2. Khai báo API backend:
 
-src/store/: Quản lý trạng thái (Zustand hoặc Redux).
+```env
+APP_ENV=development
+EXPO_PUBLIC_API_URL=http://localhost:8080/api
+```
 
-# UI kit:
-Styling: Sử dụng NativeWind (Tailwind CSS cho React Native) để viết code UI cực nhanh.
+Giá trị nên dùng theo môi trường:
 
-Icons: Lucide-react-native (Rất hiện đại và hợp với style tối giản).
+- Web hoặc iOS simulator: `http://localhost:8080/api`
+- Android emulator: `http://10.0.2.2:8080/api`
+- Thiết bị thật cùng Wi-Fi: `http://<LAN_IP_MAY_TINH>:8080/api`
 
-Charts: Victory-native hoặc react-native-chart-kit để làm báo cáo AI.
+Ví dụ máy thật:
 
-Gợi ý màu sắc cho App tài chính: > * Màu chủ đạo: #0047AB (Cobalt Blue) - Tạo cảm giác tin cậy.
+```env
+APP_ENV=development
+EXPO_PUBLIC_API_URL=http://192.168.1.10:8080/api
+```
 
-Màu nhấn: #10B981 (Emerald Green) - Đại diện cho tiền bạc/tăng trưởng.
+## App config theo môi trường
 
-# Giao diện Voice Input (Trái tim của App)
-Đây là phần khó nhất và cũng là phần "ăn tiền" nhất mà bạn đảm nhận.
+Expo giờ dùng [app.config.js](/home/tyler/GitHub/J2EE/mobile/app.config.js) để đổi metadata theo môi trường:
 
-1. Thư viện cần thiết
-2. Logic giao diện ghi âm
-Ngày mai khi bắt đầu code, bạn hãy tập trung vào 3 trạng thái của UI:
+- `development`: app name có hậu tố `Dev`, package/bundle id có hậu tố `.dev`
+- `preview`: app name có hậu tố `Preview`, package/bundle id có hậu tố `.preview`
+- `production`: dùng tên và package chính thức
 
-Idle (Chờ): Chỉ hiện một nút Mic lớn ở chính giữa màn hình.
+`eas.json` đã map sẵn:
 
-Recording (Đang nói): Hiển thị sóng âm (Waveform) chuyển động để người dùng biết app đang nghe.
+- profile `development` -> `APP_ENV=development`
+- profile `preview` -> `APP_ENV=preview`
+- profile `production` -> `APP_ENV=production`
 
-Processing (Đang xử lý): Hiển thị Loading kèm text "AI đang phân tích..." trong khi chờ LLM trả về kết quả JSON.
+Lưu ý:
 
-# GIT:
-Nếu bạn không dùng tham số -b, bạn sẽ phải gõ 2 lệnh riêng biệt:
+- `EXPO_PUBLIC_API_URL` là bắt buộc với `preview` và `production`
+- nếu thiếu ở `development`, app sẽ fallback về `http://localhost:8080/api`
 
-git branch feat/setup-project (Tạo nhánh nhưng vẫn đứng ở nhánh cũ).
+Sau khi đổi `.env`, hãy restart Expo:
 
-git checkout feat/setup-project (Chuyển sang nhánh vừa tạo).
+```bash
+npm run start
+```
+
+Nếu app chưa nhận biến mới, chạy:
+
+```bash
+npx expo start -c
+```
+
+Có thể kiểm tra config Expo đang resolve bằng:
+
+```bash
+npx expo config --type public
+```
+
+## Cấu trúc chính
+
+- `src/screens/`: các màn hình chính
+- `src/components/`: component dùng chung
+- `src/services/`: gọi API backend và lưu trữ local
+- `src/config/`: cấu hình môi trường cho app

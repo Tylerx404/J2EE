@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { LucideLayoutDashboard, LucideHistory, LucidePieChart, LucideTags } from 'lucide-react-native';
+import { LucideLayoutDashboard, LucideHistory, LucidePieChart, LucideTags, LucideWallet, LucideUser } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import LoginScreen from './src/screens/LoginScreen';
@@ -11,6 +11,8 @@ import HomeScreen from './src/screens/HomeScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import CategoryScreen from './src/screens/CategoryScreen';
+import WalletScreen from './src/screens/WalletScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -60,6 +62,13 @@ export default function App() {
         <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarIcon: ({ color }) => <LucideHistory color={color} size={24} /> }} />
         <Tab.Screen name="Reports" component={ReportScreen} options={{ tabBarIcon: ({ color }) => <LucidePieChart color={color} size={24} /> }} />
         <Tab.Screen name="Category" component={CategoryScreen} options={{ tabBarIcon: ({ color }) => <LucideTags color={color} size={24} /> }} />
+        <Tab.Screen name="Wallets" component={WalletScreen} options={{ tabBarIcon: ({ color }) => <LucideWallet color={color} size={24} /> }} />
+        <Tab.Screen
+          name="Profile"
+          options={{ tabBarIcon: ({ color }) => <LucideUser color={color} size={24} /> }}
+        >
+          {(props) => <ProfileScreen {...props} onLogout={() => setIsLoggedIn(false)} />}
+        </Tab.Screen>
       </Tab.Navigator>
     </NavigationContainer>
   );

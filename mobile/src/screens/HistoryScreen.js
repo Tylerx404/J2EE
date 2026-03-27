@@ -1,30 +1,87 @@
 // === SECTION 1: IMPORTS ===
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { LucideSearch, LucideCalendar, LucideArrowUpDown, LucideFilter, LucideArrowLeft } from 'lucide-react-native';
 import TransactionItem from '../components/TransactionItem';
 import { styles } from './css/HistoryScreenStyles';
+import { getTransactionsFromBackend, deleteTransactionOnBackend } from '../services/transactionService';
 
-// === SECTION 2: CONSTANTS & MOCK DATA ===
-// 1. Dữ liệu giả lập (Mock Data) - Chuẩn bị cho API Backend
-const MOCK_TRANSACTIONS = [
-    { id: '1', title: 'Học tập', amount: '150.000', date: '26/02/2026', category: 'Học tập' },
-    { id: '2', title: 'Ăn sáng phở bò', amount: '45.000', date: '26/02/2026', category: 'Ăn uống' },
-    { id: '3', title: 'Grab về nhà', amount: '32.000', date: '25/02/2026', category: 'Di chuyển' },
-    { id: '4', title: 'Áo polo mới', amount: '320.000', date: '25/02/2026', category: 'Mua sắm' },
-    { id: '5', title: 'Highlands - cappuccino', amount: '65.000', date: '23/02/2026', category: 'Cà phê' },
-];
+const formatDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('vi-VN');
+};
 
 // === SECTION 3: COMPONENT LOGIC ===
 const HistoryScreen = () => {
-    // 2. State lưu trữ từ khóa tìm kiếm
+    const isFocused = useIsFocused();
     const [searchText, setSearchText] = useState('');
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    // 3. Logic lọc danh sách theo tên giao dịch hoặc hạng mục
-    const filteredTransactions = MOCK_TRANSACTIONS.filter((tx) =>
-        tx.title.toLowerCase().includes(searchText.toLowerCase()) ||
-        tx.category.toLowerCase().includes(searchText.toLowerCase())
-    );
+    const loadTransactions = async () => {
+        try {
+            setLoading(true);
+            const data = await getTransactionsFromBackend();
+            const normalized = data.map((tx) => ({
+                id: tx.id,
+                title: tx.note || tx.categoryName || 'Giao dịch',
+                amount: tx.amount,
+                date: formatDate(tx.transactionDate),
+                category: tx.categoryName || tx.walletName,
+                type: tx.type || 'EXPENSE',
+            }));
+            setTransactions(normalized);
+        } catch (error) {
+            console.warn('Lỗi tải lịch sử giao dịch:', error.message);
+            setTransactions([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!isFocused) return;
+        loadTransactions();
+    }, [isFocused]);
+
+    const filteredTransactions = useMemo(() => {
+        const keyword = searchText.trim().toLowerCase();
+        if (!keyword) return transactions;
+        return transactions.filter((tx) =>
+            tx.title.toLowerCase().includes(keyword) ||
+            (tx.category || '').toLowerCase().includes(keyword)
+        );
+    }, [transactions, searchText]);
+
+    const totalExpense = filteredTransactions.reduce((sum, tx) => {
+        if (tx.type !== 'EXPENSE') return sum;
+        return sum + Number(tx.amount || 0);
+    }, 0);
+
+    const now = new Date();
+    const monthLabel = now.getMonth() + 1;
+    const yearLabel = now.getFullYear();
+
+    const handleDeleteTransaction = (transactionId) => {
+        Alert.alert('Xác nhận', 'Bạn có chắc muốn xóa giao dịch này?', [
+            { text: 'Hủy', style: 'cancel' },
+            {
+                text: 'Xóa',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await deleteTransactionOnBackend(transactionId);
+                        setTransactions((prev) => prev.filter((item) => item.id !== transactionId));
+                    } catch (error) {
+                        Alert.alert('Lỗi', `Không xóa được giao dịch: ${error.message}`);
+                    }
+                },
+            },
+        ]);
+    };
 
     // === SECTION 4: MAIN RENDER ===
     return (
@@ -37,11 +94,11 @@ const HistoryScreen = () => {
                     </TouchableOpacity>
                     <View style={styles.headerTitleBox}>
                         <Text style={styles.headerTitle}>Lịch sử chi tiêu</Text>
-                        <Text style={styles.headerSubtitle}>Tháng 2 • 15 giao dịch</Text>
+                        <Text style={styles.headerSubtitle}>Tháng {monthLabel}/{yearLabel} • {filteredTransactions.length} giao dịch</Text>
                     </View>
                     <View style={styles.totalBadge}>
                         <Text style={styles.totalLabel}>Tổng chi</Text>
-                        <Text style={styles.totalText}>2.486.000đ</Text>
+                        <Text style={styles.totalText}>{Math.round(totalExpense).toLocaleString('vi-VN')}đ</Text>
                     </View>
                 </View>
 
@@ -78,10 +135,14 @@ const HistoryScreen = () => {
             {/* 5. Render danh sách đã được lọc */}
             <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
                 <Text style={styles.sortHint}>
-                    {filteredTransactions.length} GIAO DỊCH • SẮP XẾP THEO THẤP → CAO
+                    {filteredTransactions.length} GIAO DỊCH • SẮP XẾP MỚI NHẤT
                 </Text>
 
-                {filteredTransactions.length > 0 ? (
+                {loading ? (
+                    <View style={{ marginTop: 30, alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color="#4F46E5" />
+                    </View>
+                ) : filteredTransactions.length > 0 ? (
                     filteredTransactions.map((tx) => (
                         <TransactionItem
                             key={tx.id}
@@ -89,6 +150,8 @@ const HistoryScreen = () => {
                             amount={tx.amount}
                             date={tx.date}
                             category={tx.category}
+                            type={tx.type}
+                            onDelete={() => handleDeleteTransaction(tx.id)}
                         />
                     ))
                 ) : (
