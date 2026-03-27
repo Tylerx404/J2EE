@@ -1,74 +1,41 @@
 // === SECTION 1: IMPORTS ===
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Easing, Modal, RefreshControl } from 'react-native';
-import { AudioModule, Audio } from 'expo-audio'; // Chỉ giữ lại những cái cần thiết
-import { LucideMic, LucideWallet, LucideTrendingUp, LucideLogOut, LucideEye, LucideEyeOff } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, TouchableOpacity, ScrollView, Animated, Easing, Modal, RefreshControl } from 'react-native';
+import { AudioModule } from 'expo-audio';
+import { LucideMic, LucideLogOut, LucideEye, LucideEyeOff } from 'lucide-react-native';
+import TransactionItem from '../components/TransactionItem';
 
 // Services
-import { getTransactions, saveTransaction } from '../services/transactionStorage';
-import { getCategories } from '../services/categoryStorage';
 import { logout } from '../services/authService';
-import { apiRequest } from '../services/apiClient';
 import { getTransactionsFromBackend, createTransactionOnBackend } from '../services/transactionService';
+import { getCategoriesFromBackend } from '../services/categoryService';
+import { getWalletsFromBackend } from '../services/walletService';
 import { parseVoiceToTransaction } from '../services/aiService';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 import { styles } from './css/HomeScreenStyles';
 import { COLORS } from '../theme/colors';
-
-// === HIỆU ỨNG SÓNG ÂM (WAVEFORM) ===
-const Waveform = () => {
-    const anims = [useRef(new Animated.Value(10)).current, useRef(new Animated.Value(20)).current, useRef(new Animated.Value(35)).current, useRef(new Animated.Value(20)).current, useRef(new Animated.Value(10)).current];
-
-    useEffect(() => {
-        const animations = anims.map(anim =>
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(anim, { toValue: 30 + Math.random() * 20, duration: 400, useNativeDriver: false }),
-                    Animated.timing(anim, { toValue: 10, duration: 400, useNativeDriver: false }),
-                ])
-            )
-        );
-        animations.forEach(a => a.start());
-        return () => animations.forEach(a => a.stop());
-    }, []);
-
-    return (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 50, marginBottom: 10 }}>
-            {anims.map((anim, i) => (
-                <Animated.View key={i} style={{ width: 4, height: anim, backgroundColor: COLORS.danger, borderRadius: 2, marginHorizontal: 2 }} />
-            ))}
-        </View>
-    );
-};
-
-const TransactionItem = ({ title, amount, category }) => (
-    <View style={{ padding: 15, backgroundColor: '#FFF', borderRadius: 12, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', elevation: 2 }}>
-        <View>
-            <Text style={{ fontWeight: 'bold', color: '#333' }}>{category || "Chi tiêu"}</Text>
-            <Text style={{ fontSize: 12, color: '#666' }}>{title}</Text>
-        </View>
-        <Text style={{ color: '#EF4444', fontWeight: 'bold' }}>-{amount.toLocaleString()}đ</Text>
-    </View>
-);
-
-const CreateCategoryModal = () => null;
 
 // === SECTION 3: COMPONENT LOGIC ===
 const HomeScreen = ({ onLogout }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [isModalVisible, setModalVisible] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
-    const [parsedData, setParsedData] = useState({ amount: "45.000đ", category: "Ăn uống" });
-    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [parsedData, setParsedData] = useState({ amount: "0đ", note: "", type: "EXPENSE" });
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [walletBalance, setWalletBalance] = useState(0);
     const [isBalanceVisible, setIsBalanceVisible] = useState(false);
-    const [savedToken, setSavedToken] = useState(""); // State để hiển thị Token lên màn hình
     const [isParsing, setIsParsing] = useState(false);
     const [walletId, setWalletId] = useState(null);
+    const filteredCategoriesByType = categories.filter((cat) => cat.type === parsedData.type);
+
+    const formatDate = (value) => {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('vi-VN');
+    };
 
     const handleLogout = async () => {
         await logout();
@@ -86,7 +53,8 @@ const HomeScreen = ({ onLogout }) => {
                 const aiResult = await parseVoiceToTransaction(transcript);
                 setParsedData({
                     amount: aiResult.amount ? `${aiResult.amount.toLocaleString()}đ` : "0đ",
-                    category: aiResult.note || transcript
+                    note: aiResult.note || transcript,
+                    type: aiResult.type || "EXPENSE",
                 });
             } catch (error) {
                 console.error("Lỗi AI:", error);
@@ -99,7 +67,7 @@ const HomeScreen = ({ onLogout }) => {
     // 1. Hàm lấy số dư từ Backend
     const fetchWalletData = async () => {
         try {
-            const wallets = await apiRequest('/wallets');
+            const wallets = await getWalletsFromBackend();
             if (wallets && wallets.length > 0) {
                 setWalletBalance(wallets[0].balance);
                 setWalletId(wallets[0].id);
@@ -114,12 +82,27 @@ const HomeScreen = ({ onLogout }) => {
         try {
             const [txData, catData] = await Promise.all([
                 getTransactionsFromBackend(),
-                getCategories()
+                getCategoriesFromBackend()
             ]);
 
-            setTransactions(txData.slice(0, 5)); // Đã sửa lỗi sai tên biến txBackendData -> txData
-            setCategories(catData);
-            if (catData.length > 0) setSelectedCategory(catData[0]);
+            const normalizedTransactions = txData.slice(0, 5).map((item) => ({
+                id: item.id,
+                title: item.note || item.categoryName || 'Giao dịch',
+                amount: item.amount,
+                date: formatDate(item.transactionDate),
+                category: item.categoryName || item.walletName,
+                type: item.type || 'EXPENSE',
+            }));
+
+            const normalizedCategories = catData.map((item) => ({
+                id: item.id,
+                name: item.name,
+                type: item.type,
+            }));
+
+            setTransactions(normalizedTransactions);
+            setCategories(normalizedCategories);
+            if (normalizedCategories.length > 0) setSelectedCategory(normalizedCategories[0]);
 
             await fetchWalletData();
         } catch (error) {
@@ -130,11 +113,6 @@ const HomeScreen = ({ onLogout }) => {
     // Khởi tạo dữ liệu khi vào App
     useEffect(() => {
         const checkStatus = async () => {
-            // Lấy Token từ máy
-            const token = await AsyncStorage.getItem('jwt_token');
-            setSavedToken(token || "Chưa có Token (Hãy đăng nhập)");
-            console.log("Token trong máy:", token);
-
             await loadAllData();
         };
         checkStatus();
@@ -161,6 +139,18 @@ const HomeScreen = ({ onLogout }) => {
             ])
         ).start();
     }, [pulseAnim]);
+
+    useEffect(() => {
+        if (filteredCategoriesByType.length === 0) {
+            setSelectedCategory(null);
+            return;
+        }
+
+        const stillValid = filteredCategoriesByType.find((item) => item.id === selectedCategory?.id);
+        if (!stillValid) {
+            setSelectedCategory(filteredCategoriesByType[0]);
+        }
+    }, [categories, parsedData.type, selectedCategory]);
 
     // 5. Recording Logic
     // const audioRecorder = useAudioRecorder({ sampleRate: 44100, channels: 1, bitRate: 128000 });
@@ -214,13 +204,14 @@ const HomeScreen = ({ onLogout }) => {
         }
 
         // 3. Tạo Object gửi đi (Khớp 100% với Record Java của bạn)
+        const parsedCategoryId = Number(selectedCategory?.id);
         const newEntry = {
-            walletId: walletId,                      // ID lấy từ API
-            categoryId: selectedCategory?.id || null, // ID hạng mục (nếu có)
-            amount: finalAmount,                     // Số tiền kiểu số
-            type: "EXPENSE",                         // Đúng Pattern EXPENSE/INCOME
-            note: parsedData.category,               // Ghi chú từ AI
-            transactionDate: new Date().toISOString() // Định dạng thời gian chuẩn ISO
+            walletId: walletId,
+            categoryId: Number.isFinite(parsedCategoryId) ? parsedCategoryId : null,
+            amount: finalAmount,
+            type: parsedData.type || "EXPENSE",
+            note: parsedData.note,
+            transactionDate: new Date().toISOString().slice(0, 19),
         };
 
         try {
@@ -290,7 +281,7 @@ const HomeScreen = ({ onLogout }) => {
                     </View>
                     {transactions.length > 0 ? (
                         transactions.map(item => (
-                            <TransactionItem key={item.id} title={item.title} amount={item.amount} date={item.date} category={item.category} />
+                            <TransactionItem key={item.id} title={item.title} amount={item.amount} date={item.date} category={item.category} type={item.type} />
                         ))
                     ) : (
                         <Text style={{ color: COLORS.textSub, textAlign: 'center', marginVertical: 20 }}>Chưa có giao dịch nào</Text>
@@ -319,7 +310,9 @@ const HomeScreen = ({ onLogout }) => {
                                 </View>
                             ) : (
                                 <>
-                                    <Text style={styles.modalTitle}>Xác nhận chi tiêu</Text>
+                                    <Text style={styles.modalTitle}>
+                                        {parsedData.type === 'INCOME' ? 'Xác nhận thu nhập' : 'Xác nhận chi tiêu'}
+                                    </Text>
 
                                     <View style={styles.amountBox}>
                                         <Text style={styles.amountLabel}>SỐ TIỀN</Text>
@@ -328,12 +321,12 @@ const HomeScreen = ({ onLogout }) => {
 
                                     <View style={styles.noteBox}>
                                         <Text style={styles.noteLabel}>GHI CHÚ</Text>
-                                        <Text style={styles.noteValue}>{parsedData.category}</Text>
+                                        <Text style={styles.noteValue}>{parsedData.note}</Text>
                                     </View>
 
                                     <Text style={styles.subTitle}>Hạng mục</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-                                        {categories.map(cat => (
+                                        {filteredCategoriesByType.map(cat => (
                                             <TouchableOpacity
                                                 key={cat.id}
                                                 onPress={() => setSelectedCategory(cat)}
@@ -344,6 +337,11 @@ const HomeScreen = ({ onLogout }) => {
                                                 </Text>
                                             </TouchableOpacity>
                                         ))}
+                                        {filteredCategoriesByType.length === 0 ? (
+                                            <Text style={{ color: COLORS.textSub, fontSize: 12 }}>
+                                                Chưa có hạng mục phù hợp, bạn có thể để trống.
+                                            </Text>
+                                        ) : null}
                                     </ScrollView>
 
                                     <TouchableOpacity style={styles.btnConfirm} onPress={handleSaveRecording}>
@@ -358,16 +356,7 @@ const HomeScreen = ({ onLogout }) => {
                         </View>
                     </View>
                 </Modal>
-
-                <View style={{ padding: 10, backgroundColor: '#f0f0f0', borderRadius: 10, marginBottom: 15 }}>
-                    <Text style={{ fontSize: 10, color: COLORS.textSub }}>Debug Token:</Text>
-                    <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: 'bold' }}>
-                        {/* Sửa lại dòng này để có giá trị mặc định khi savedToken là null */}
-                        {savedToken || "Chưa có Token (Hãy đăng nhập)"}
-                    </Text>
-                </View>
             </ScrollView>
-            {/* <CreateCategoryModal visible={showCategoryModal} onClose={() => setShowCategoryModal(false)} /> */}
         </View>
     );
 
