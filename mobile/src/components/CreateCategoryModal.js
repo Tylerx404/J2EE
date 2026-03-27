@@ -42,17 +42,21 @@ const ICON_OPTIONS = [
 ];
 
 const COLOR_OPTIONS = ['#F97316', '#10B981', '#8B5CF6', '#3B82F6', '#EF4444', '#F59E0B'];
+const TYPE_OPTIONS = [
+    { value: 'EXPENSE', label: 'Chi tiêu' },
+    { value: 'INCOME', label: 'Thu nhập' },
+];
 
 const CreateCategoryModal = ({ visible, onClose, onCreate }) => {
     const [name, setName] = useState('');
-    const [type, setType] = useState('Manual');
+    const [type, setType] = useState('EXPENSE');
     const [iconId, setIconId] = useState('hand');
     const [color, setColor] = useState(COLOR_OPTIONS[0]);
 
     useEffect(() => {
         if (!visible) return;
         setName('');
-        setType('Manual');
+        setType('EXPENSE');
         setIconId('hand');
         setColor(COLOR_OPTIONS[0]);
     }, [visible]);
@@ -83,13 +87,13 @@ const CreateCategoryModal = ({ visible, onClose, onCreate }) => {
 
                     <Text style={styles.label}>Loại</Text>
                     <View style={styles.row}>
-                        {['Auto', 'Manual'].map(item => (
+                        {TYPE_OPTIONS.map((item) => (
                             <TouchableOpacity
-                                key={item}
-                                style={[styles.chip, type === item && styles.chipActive]}
-                                onPress={() => setType(item)}
+                                key={item.value}
+                                style={[styles.chip, type === item.value && styles.chipActive]}
+                                onPress={() => setType(item.value)}
                             >
-                                <Text style={[styles.chipText, type === item && styles.chipTextActive]}>{item}</Text>
+                                <Text style={[styles.chipText, type === item.value && styles.chipTextActive]}>{item.label}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -127,7 +131,9 @@ const CreateCategoryModal = ({ visible, onClose, onCreate }) => {
                         </View>
                         <View>
                             <Text style={styles.previewName}>{name || 'Tên hạng mục'}</Text>
-                            <Text style={styles.previewSub}>{type}</Text>
+                            <Text style={styles.previewSub}>
+                                {type === 'INCOME' ? 'Thu nhập' : 'Chi tiêu'}
+                            </Text>
                         </View>
                     </View>
 
