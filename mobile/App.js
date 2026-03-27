@@ -35,6 +35,7 @@ const Tab = createBottomTabNavigator();
 export default function App() {
   const [sessionMode, setSessionMode] = useState(SESSION_MODES.LOGGED_OUT);
   const [authView, setAuthView] = useState(null);
+  const [isEnteringGuest, setIsEnteringGuest] = useState(false);
   const isGuest = sessionMode === SESSION_MODES.GUEST;
   const isAuthenticated = sessionMode === SESSION_MODES.AUTHENTICATED;
 
@@ -80,6 +81,30 @@ export default function App() {
 
     prepareGuestStorage();
   }, [isGuest]);
+
+  const handleGuestEntry = async () => {
+    if (isEnteringGuest) {
+      return;
+    }
+
+    try {
+      setIsEnteringGuest(true);
+      await startGuestSession();
+      await initGuestDb();
+      await seedGuestDataIfNeeded();
+      setAuthView(null);
+      setSessionMode(SESSION_MODES.GUEST);
+    } catch (error) {
+      console.error('Guest entry error:', error);
+      setSessionMode(SESSION_MODES.LOGGED_OUT);
+      Alert.alert(
+        'Khong vao duoc guest mode',
+        `Khong the khoi tao du lieu local tren moi truong nay. ${error.message || ''}`.trim()
+      );
+    } finally {
+      setIsEnteringGuest(false);
+    }
+  };
 
   const handleAuthenticatedEntry = async () => {
     setSessionMode(SESSION_MODES.AUTHENTICATED);
@@ -135,11 +160,9 @@ export default function App() {
     return (
       <LoginScreen
         onLoginSuccess={handleAuthenticatedEntry}
-        onContinueAsGuest={async () => {
-          await startGuestSession();
-          setSessionMode(SESSION_MODES.GUEST);
-        }}
+        onContinueAsGuest={handleGuestEntry}
         onGoToRegister={() => setAuthView('register')}
+        isGuestEntryLoading={isEnteringGuest}
       />
     );
   }

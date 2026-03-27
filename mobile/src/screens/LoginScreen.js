@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { login } from '../services/authService';
 import { COLORS } from '../theme/colors';
 
@@ -9,6 +9,7 @@ const LoginScreen = ({
     onContinueAsGuest,
     onBack,
     showGuestEntry = true,
+    isGuestEntryLoading = false,
 }) => {
     const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
@@ -63,8 +64,19 @@ const LoginScreen = ({
             </TouchableOpacity>
 
             {showGuestEntry ? (
-                <TouchableOpacity onPress={onContinueAsGuest} style={styles.guestButton}>
-                    <Text style={styles.guestButtonText}>Dung thu khong can dang nhap</Text>
+                <TouchableOpacity
+                    onPress={onContinueAsGuest}
+                    style={[styles.guestButton, isGuestEntryLoading && styles.guestButtonDisabled]}
+                    disabled={isGuestEntryLoading}
+                >
+                    {isGuestEntryLoading ? (
+                        <View style={styles.guestLoadingRow}>
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                            <Text style={styles.guestButtonText}>Dang khoi tao guest mode...</Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.guestButtonText}>Dung thu khong can dang nhap</Text>
+                    )}
                 </TouchableOpacity>
             ) : null}
         </View>
@@ -89,6 +101,14 @@ const styles = StyleSheet.create({
         padding: 14,
         borderRadius: 10,
         alignItems: 'center',
+    },
+    guestButtonDisabled: {
+        opacity: 0.7,
+    },
+    guestLoadingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     guestButtonText: { color: COLORS.primary, fontWeight: '600' },
 });
