@@ -36,6 +36,9 @@ public class Category {
     @JoinColumn(name = "USER_ID")
     private User user; // null nếu là default, không null nếu custom của user
 
+    @Column(name = "SOURCE_LOCAL_ID", length = 120)
+    private String sourceLocalId;
+
     @OneToMany(mappedBy = "category")
     private List<Transaction> transactions;
 }

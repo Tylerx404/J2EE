@@ -40,6 +40,9 @@ public class Wallet {
     @Builder.Default
     private String currency = "VND";
 
+    @Column(name = "SOURCE_LOCAL_ID", length = 120)
+    private String sourceLocalId;
+
     @Column(name = "CREATED_AT")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
