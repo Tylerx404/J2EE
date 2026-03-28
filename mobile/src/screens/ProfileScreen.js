@@ -24,6 +24,7 @@ import { COLORS } from '../theme/colors';
 const IMPORT_STATE_LABELS = {
     none: 'Chua co yeu cau import',
     pending: 'Da chuan bi import local',
+    imported: 'Da import du lieu local len server',
     later: 'Da hen import sau',
     keep_separate: 'Dang giu rieng du lieu local',
 };

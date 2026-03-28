@@ -57,8 +57,10 @@ export const seedGuestDataIfNeeded = async () => {
                 balance,
                 is_default,
                 created_at,
-                updated_at
-            ) VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+                updated_at,
+                migration_state,
+                imported_server_id
+            ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, 'LOCAL_ONLY', NULL)
             `,
             createLocalId('wallet'),
             DEFAULT_WALLET.name,
@@ -79,8 +81,10 @@ export const seedGuestDataIfNeeded = async () => {
                     icon,
                     is_default,
                     created_at,
-                    updated_at
-                ) VALUES (?, ?, ?, ?, 1, ?, ?)
+                    updated_at,
+                    migration_state,
+                    imported_server_id
+                ) VALUES (?, ?, ?, ?, 1, ?, ?, 'LOCAL_ONLY', NULL)
                 `,
                 createLocalId('category'),
                 category.name,
@@ -92,7 +96,7 @@ export const seedGuestDataIfNeeded = async () => {
         }
 
         await setMetaValue(db, META_KEYS.SEEDED_AT, timestamp);
-        await setMetaValue(db, META_KEYS.SCHEMA_VERSION, '2');
+        await setMetaValue(db, META_KEYS.SCHEMA_VERSION, '3');
     });
 
     return true;
@@ -100,7 +104,19 @@ export const seedGuestDataIfNeeded = async () => {
 
 export const hasGuestDataToImport = async () => {
     const db = await initGuestDb();
-    const walletCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM wallets');
-    const transactionCount = await db.getFirstAsync('SELECT COUNT(*) as count FROM transactions');
-    return Number(walletCount?.count ?? 0) > 1 || Number(transactionCount?.count ?? 0) > 0;
+    const [walletCount, categoryCount, transactionCount] = await Promise.all([
+        db.getFirstAsync(
+            "SELECT COUNT(*) as count FROM wallets WHERE is_default = 0 AND migration_state = 'LOCAL_ONLY'"
+        ),
+        db.getFirstAsync(
+            "SELECT COUNT(*) as count FROM categories WHERE is_default = 0 AND migration_state = 'LOCAL_ONLY'"
+        ),
+        db.getFirstAsync(
+            "SELECT COUNT(*) as count FROM transactions WHERE migration_state = 'LOCAL_ONLY'"
+        ),
+    ]);
+
+    return Number(walletCount?.count ?? 0) > 0
+        || Number(categoryCount?.count ?? 0) > 0
+        || Number(transactionCount?.count ?? 0) > 0;
 };

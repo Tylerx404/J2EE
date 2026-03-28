@@ -88,8 +88,9 @@ export const createTransactionLocal = async ({
                 voice_text,
                 created_at,
                 updated_at,
-                migration_state
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LOCAL_ONLY')
+                migration_state,
+                imported_server_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LOCAL_ONLY', NULL)
             `,
             localId,
             walletId,

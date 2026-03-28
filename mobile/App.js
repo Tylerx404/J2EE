@@ -22,12 +22,12 @@ import ReportScreen from './src/screens/ReportScreen';
 import WalletScreen from './src/screens/WalletScreen';
 import { initGuestDb } from './src/data/guest/guestDb';
 import {
-  buildGuestImportPayload,
+  hasPendingGuestImport,
+  importGuestDataToBackend,
   keepGuestImportSeparate,
-  markGuestImportPending,
   postponeGuestImport,
 } from './src/data/guest/import';
-import { hasGuestDataToImport, seedGuestDataIfNeeded } from './src/data/guest/seed';
+import { seedGuestDataIfNeeded } from './src/data/guest/seed';
 import { getSessionMode, SESSION_MODES, startGuestSession } from './src/services/sessionService';
 
 const Tab = createBottomTabNavigator();
@@ -36,6 +36,7 @@ export default function App() {
   const [sessionMode, setSessionMode] = useState(SESSION_MODES.LOGGED_OUT);
   const [authView, setAuthView] = useState(null);
   const [isEnteringGuest, setIsEnteringGuest] = useState(false);
+  const [financeDataVersion, setFinanceDataVersion] = useState(0);
   const isGuest = sessionMode === SESSION_MODES.GUEST;
   const isAuthenticated = sessionMode === SESSION_MODES.AUTHENTICATED;
 
@@ -110,7 +111,7 @@ export default function App() {
     setSessionMode(SESSION_MODES.AUTHENTICATED);
     setAuthView(null);
 
-    const shouldPromptImport = await hasGuestDataToImport();
+    const shouldPromptImport = await hasPendingGuestImport();
     if (!shouldPromptImport) {
       return;
     }
@@ -122,12 +123,17 @@ export default function App() {
         {
           text: 'Import du lieu local',
           onPress: async () => {
-            const payload = await buildGuestImportPayload();
-            const summary = await markGuestImportPending(payload);
-            Alert.alert(
-              'Da chuan bi import',
-              `Wallet: ${summary.walletCount}, category: ${summary.categoryCount}, transaction: ${summary.transactionCount}.`
-            );
+            try {
+              const { payload, response } = await importGuestDataToBackend();
+              setFinanceDataVersion((value) => value + 1);
+              const importedCounts = response?.importedCounts || {};
+              Alert.alert(
+                'Import thanh cong',
+                `Wallet ${payload.wallets.length}: tao ${importedCounts.walletsCreated || 0}, dung lai ${importedCounts.walletsReused || 0}.\nCategory ${payload.categories.length}: tao ${importedCounts.categoriesCreated || 0}, dung lai ${importedCounts.categoriesReused || 0}.\nTransaction ${payload.transactions.length}: tao ${importedCounts.transactionsCreated || 0}, dung lai ${importedCounts.transactionsReused || 0}.`
+              );
+            } catch (error) {
+              Alert.alert('Import that bai', error.message || 'Khong import duoc du lieu local.');
+            }
           },
         },
         {
@@ -189,7 +195,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer key={`nav-${sessionMode}-${financeDataVersion}`}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,

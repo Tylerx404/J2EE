@@ -3,7 +3,7 @@ import { nowIso } from './date';
 import { applyTransactionBalanceChange } from './rules';
 
 const DATABASE_NAME = 'guest_finance.db';
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 let dbPromise;
 
@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS wallets (
     balance TEXT NOT NULL,
     is_default INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    migration_state TEXT NOT NULL DEFAULT 'LOCAL_ONLY',
+    imported_server_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -40,7 +42,9 @@ CREATE TABLE IF NOT EXISTS categories (
     icon TEXT,
     is_default INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    migration_state TEXT NOT NULL DEFAULT 'LOCAL_ONLY',
+    imported_server_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
@@ -56,6 +60,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     migration_state TEXT NOT NULL DEFAULT 'LOCAL_ONLY',
+    imported_server_id TEXT,
     FOREIGN KEY (wallet_local_id) REFERENCES wallets(local_id) ON DELETE RESTRICT,
     FOREIGN KEY (category_local_id) REFERENCES categories(local_id) ON DELETE SET NULL
 );
@@ -66,6 +71,18 @@ ON transactions(wallet_local_id, transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_category
 ON transactions(category_local_id);
 `;
+
+const columnExists = async (db, tableName, columnName) => {
+    const rows = await db.getAllAsync(`PRAGMA table_info(${tableName})`);
+    return rows.some((row) => row.name === columnName);
+};
+
+const ensureColumn = async (db, tableName, columnName, definitionSql) => {
+    const exists = await columnExists(db, tableName, columnName);
+    if (!exists) {
+        await db.execAsync(`ALTER TABLE ${tableName} ADD COLUMN ${definitionSql};`);
+    }
+};
 
 const rebuildWalletBalances = async (db) => {
     const wallets = await db.getAllAsync('SELECT local_id, initial_balance FROM wallets');
@@ -106,6 +123,14 @@ const rebuildWalletBalances = async (db) => {
     });
 };
 
+const applyImportStateMigration = async (db) => {
+    await ensureColumn(db, 'wallets', 'migration_state', "migration_state TEXT NOT NULL DEFAULT 'LOCAL_ONLY'");
+    await ensureColumn(db, 'wallets', 'imported_server_id', 'imported_server_id TEXT');
+    await ensureColumn(db, 'categories', 'migration_state', "migration_state TEXT NOT NULL DEFAULT 'LOCAL_ONLY'");
+    await ensureColumn(db, 'categories', 'imported_server_id', 'imported_server_id TEXT');
+    await ensureColumn(db, 'transactions', 'imported_server_id', 'imported_server_id TEXT');
+};
+
 export const getGuestDb = async () => {
     if (!dbPromise) {
         dbPromise = openDatabaseAsync(DATABASE_NAME);
@@ -123,6 +148,10 @@ export const migrateGuestDb = async (db) => {
 
     if (currentVersion < 2) {
         await rebuildWalletBalances(db);
+    }
+
+    if (currentVersion < 3) {
+        await applyImportStateMigration(db);
     }
 
     await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);

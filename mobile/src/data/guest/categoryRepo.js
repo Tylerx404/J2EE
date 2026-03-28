@@ -47,8 +47,10 @@ export const createCategoryLocal = async ({ name, type, icon }) => {
                 icon,
                 is_default,
                 created_at,
-                updated_at
-            ) VALUES (?, ?, ?, ?, 0, ?, ?)
+                updated_at,
+                migration_state,
+                imported_server_id
+            ) VALUES (?, ?, ?, ?, 0, ?, ?, 'LOCAL_ONLY', NULL)
             `,
             localId,
             name,
