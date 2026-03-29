@@ -184,3 +184,6 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# Local AI workspace
+ai_core/
