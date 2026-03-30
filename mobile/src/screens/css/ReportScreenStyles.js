@@ -19,11 +19,11 @@ export const styles = StyleSheet.create({
     content: { padding: 16 },
 
     // Hàng tóm tắt nằm trong Header
-    summaryRow: { flexDirection: 'row', gap: 10, marginTop: -8, marginBottom: 40 },
+    summaryRow: { flexDirection: 'row', gap: 10, marginTop: -8, marginBottom: 20 },
     summaryCard: { flex: 1, padding: 12, borderRadius: 20, elevation: 4 },
     sumLabel: { color: '#fff', fontSize: 10, opacity: 0.8 },
     sumValue: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginTop: 4 },
-    filterRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+    filterRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
     filterChip: {
         flex: 1,
         borderRadius: 14,
@@ -41,7 +41,7 @@ export const styles = StyleSheet.create({
     filterChipTextActive: { color: '#fff' },
 
     // Thẻ trắng đè lên Header (Overlap effect)
-    whiteCard: { backgroundColor: COLORS.cardBg, padding: 20, borderRadius: 24, marginBottom: 20, elevation: 2, marginTop: -25 },
+    whiteCard: { backgroundColor: COLORS.cardBg, padding: 20, borderRadius: 24, marginBottom: 20, elevation: 2, marginTop: 0 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     cardTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain },
     badgeText: { fontSize: 12, color: COLORS.primary, backgroundColor: COLORS.primaryLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
@@ -74,7 +74,7 @@ export const styles = StyleSheet.create({
     suggestAmount: { fontSize: 12, color: COLORS.success, marginTop: 2 },
 
     // START SECTION: AI INSIGHTS & TREND CHART
-    insightsCard: { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, marginBottom: 20 },
+    insightsCard: { backgroundColor: '#fff', marginHorizontal: 0, borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, marginBottom: 20 },
     insightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
     insightTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     insightIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F5F3FF', justifyContent: 'center', alignItems: 'center' },
