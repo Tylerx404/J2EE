@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
         List<Transaction> findByWalletIdOrderByTransactionDateDesc(Long walletId);
@@ -61,4 +62,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
         @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.wallet.id = :walletId AND t.type = 'EXPENSE'")
         java.math.BigDecimal sumExpenseByWallet(@Param("walletId") Long walletId);
+
+        @Query("SELECT t FROM Transaction t WHERE t.wallet.user.id = :userId AND t.sourceLocalId = :sourceLocalId")
+        Optional<Transaction> findByUserIdAndSourceLocalId(
+                        @Param("userId") Long userId,
+                        @Param("sourceLocalId") String sourceLocalId);
 }

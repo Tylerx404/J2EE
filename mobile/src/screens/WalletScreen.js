@@ -13,9 +13,9 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import { LucideWallet, LucidePlus, LucideTrash2 } from 'lucide-react-native';
 import {
-    getWalletsFromBackend,
-    createWalletOnBackend,
-    deleteWalletOnBackend,
+    getWallets,
+    createWallet,
+    deleteWallet,
 } from '../services/walletService';
 import { COLORS } from '../theme/colors';
 
@@ -36,7 +36,7 @@ const WalletScreen = () => {
     const loadWallets = async () => {
         try {
             setLoading(true);
-            const data = await getWalletsFromBackend();
+            const data = await getWallets();
             setWallets(data || []);
         } catch (error) {
             Alert.alert('Lỗi', `Không tải được ví: ${error.message}`);
@@ -77,7 +77,7 @@ const WalletScreen = () => {
         }
 
         try {
-            const created = await createWalletOnBackend({
+            const created = await createWallet({
                 name: trimmedName,
                 currency: trimmedCurrency,
                 initialBalance: parsedBalance,
@@ -99,7 +99,7 @@ const WalletScreen = () => {
                 style: 'destructive',
                 onPress: async () => {
                     try {
-                        await deleteWalletOnBackend(wallet.id);
+                        await deleteWallet(wallet.id);
                         setWallets((prev) => prev.filter((item) => item.id !== wallet.id));
                     } catch (error) {
                         Alert.alert('Không thể xóa', error.message);

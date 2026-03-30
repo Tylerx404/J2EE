@@ -6,9 +6,9 @@ import CreateCategoryModal from '../components/CreateCategoryModal';
 import { styles } from './css/CategoryScreenStyles';
 import DeleteCategoryModal from '../components/DeleteCategoryModal';
 import {
-    getCategoriesFromBackend,
-    createCategoryOnBackend,
-    deleteCategoryOnBackend,
+    getCategories,
+    createCategory,
+    deleteCategory,
 } from '../services/categoryService';
 
 // Hàm map iconId dạng string thành Component (vì AsyncStorage không lưu được Component)
@@ -22,7 +22,10 @@ const COLOR_POOL = ['#F97316', '#10B981', '#8B5CF6', '#3B82F6', '#EF4444', '#F59
 
 const getColorById = (id) => {
     const numericId = Number(id);
-    if (Number.isNaN(numericId)) return COLOR_POOL[0];
+    if (Number.isNaN(numericId)) {
+        const hash = String(id).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+        return COLOR_POOL[Math.abs(hash) % COLOR_POOL.length];
+    }
     return COLOR_POOL[Math.abs(numericId) % COLOR_POOL.length];
 };
 
@@ -65,7 +68,7 @@ const CategoryScreen = () => {
 
     const loadData = async () => {
         try {
-            const data = await getCategoriesFromBackend();
+            const data = await getCategories();
             setCategories(data.map(mapCategoryToUi));
         } catch (error) {
             Alert.alert('Lỗi', `Không tải được danh mục: ${error.message}`);
@@ -79,7 +82,7 @@ const CategoryScreen = () => {
     // 3. Xử lý Tạo mới
     const handleCreateCategory = async (newCategoryData) => {
         try {
-            const created = await createCategoryOnBackend({
+            const created = await createCategory({
                 name: newCategoryData.name,
                 type: newCategoryData.type,
                 icon: newCategoryData.icon,
@@ -100,7 +103,7 @@ const CategoryScreen = () => {
     const handleDeleteConfirm = async () => {
         if (!categoryToDelete) return;
         try {
-            await deleteCategoryOnBackend(categoryToDelete.id);
+            await deleteCategory(categoryToDelete.id);
             setCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id));
             setShowDeleteModal(false);
             setCategoryToDelete(null);

@@ -5,7 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { LucideSearch, LucideCalendar, LucideArrowUpDown, LucideFilter, LucideArrowLeft } from 'lucide-react-native';
 import TransactionItem from '../components/TransactionItem';
 import { styles } from './css/HistoryScreenStyles';
-import { getTransactionsFromBackend, deleteTransactionOnBackend } from '../services/transactionService';
+import { deleteTransaction, getTransactions } from '../services/transactionService';
 
 const formatDate = (value) => {
     if (!value) return '';
@@ -24,7 +24,7 @@ const HistoryScreen = () => {
     const loadTransactions = async () => {
         try {
             setLoading(true);
-            const data = await getTransactionsFromBackend();
+            const data = await getTransactions();
             const normalized = data.map((tx) => ({
                 id: tx.id,
                 title: tx.note || tx.categoryName || 'Giao dịch',
@@ -73,7 +73,7 @@ const HistoryScreen = () => {
                 style: 'destructive',
                 onPress: async () => {
                     try {
-                        await deleteTransactionOnBackend(transactionId);
+                        await deleteTransaction(transactionId);
                         setTransactions((prev) => prev.filter((item) => item.id !== transactionId));
                     } catch (error) {
                         Alert.alert('Lỗi', `Không xóa được giao dịch: ${error.message}`);

@@ -1,6 +1,7 @@
 // mobile/src/services/authService.js
 import { apiRequest } from './apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearSession, startAuthenticatedSession } from './sessionService';
 
 // 1. Hàm Đăng ký (Register)
 export const register = async (username, email, password, fullName) => {
@@ -12,6 +13,7 @@ export const register = async (username, email, password, fullName) => {
     if (data.token) {
         await AsyncStorage.setItem('jwt_token', data.token);
         await AsyncStorage.setItem('user_info', JSON.stringify({ name: data.name, email: data.email }));
+        await startAuthenticatedSession();
         return data;
     } else {
         // Đọc lỗi từ errors map của GlobalExceptionHandler
@@ -38,6 +40,7 @@ export const login = async (usernameOrEmail, password) => {
             name: displayName,
             email: data.email
         }));
+        await startAuthenticatedSession();
     }
     return data;
 };
@@ -54,6 +57,7 @@ export const loginWithGoogle = async (idToken) => {
             name: data.name || "User",
             email: data.email
         }));
+        await startAuthenticatedSession();
     }
 
     return data;
@@ -65,6 +69,5 @@ export const getMyAuthProfile = async () => {
 
 // 3. Hàm Đăng xuất (Logout)
 export const logout = async () => {
-    await AsyncStorage.removeItem('jwt_token');
-    await AsyncStorage.removeItem('user_info');
+    await clearSession();
 };

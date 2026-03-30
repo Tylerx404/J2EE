@@ -1,28 +1,46 @@
-// === SECTION 1: IMPORTS ===
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Animated, Easing, Modal, RefreshControl } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    Alert,
+    Animated,
+    Easing,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { AudioModule } from 'expo-audio';
-import { LucideMic, LucideLogOut, LucideEye, LucideEyeOff } from 'lucide-react-native';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
+import { LucideCirclePlus, LucideEye, LucideEyeOff, LucideLogOut, LucideMic } from 'lucide-react-native';
+
+import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionItem from '../components/TransactionItem';
-
-// Services
-import { logout } from '../services/authService';
-import { getTransactionsFromBackend, createTransactionOnBackend } from '../services/transactionService';
-import { getCategoriesFromBackend } from '../services/categoryService';
-import { getWalletsFromBackend } from '../services/walletService';
-import { parseVoiceToTransaction } from '../services/aiService';
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
-import { styles } from './css/HomeScreenStyles';
 import { COLORS } from '../theme/colors';
+import { logout } from '../services/authService';
+import { parseVoiceToTransaction } from '../services/aiService';
+import { getCategories } from '../services/categoryService';
+import { createTransaction, getTransactions } from '../services/transactionService';
+import { getWallets } from '../services/walletService';
+import { styles } from './css/HomeScreenStyles';
 
-// === SECTION 3: COMPONENT LOGIC ===
-const HomeScreen = ({ onLogout }) => {
+const formatDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('vi-VN');
+};
+
+const HomeScreen = ({ onLogout, sessionMode }) => {
+    const isGuest = sessionMode === 'guest';
     const [refreshing, setRefreshing] = useState(false);
-    const [isModalVisible, setModalVisible] = useState(false);
+    const [isVoiceModalVisible, setVoiceModalVisible] = useState(false);
+    const [isManualModalVisible, setManualModalVisible] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
-    const [parsedData, setParsedData] = useState({ amount: "0đ", note: "", type: "EXPENSE" });
+    const [parsedData, setParsedData] = useState({ amount: '0d', note: '', type: 'EXPENSE' });
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [wallets, setWallets] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [walletBalance, setWalletBalance] = useState(0);
     const [isBalanceVisible, setIsBalanceVisible] = useState(false);
@@ -30,64 +48,26 @@ const HomeScreen = ({ onLogout }) => {
     const [walletId, setWalletId] = useState(null);
     const filteredCategoriesByType = categories.filter((cat) => cat.type === parsedData.type);
 
-    const formatDate = (value) => {
-        if (!value) return '';
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return '';
-        return date.toLocaleDateString('vi-VN');
-    };
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+
+    const formatCurrency = (num) => `${Math.round(Number(num || 0)).toLocaleString('vi-VN')}d`;
 
     const handleLogout = async () => {
         await logout();
-        if (onLogout) onLogout();
+        onLogout?.();
     };
 
-    // Lắng nghe kết quả từ giọng nói
-    useSpeechRecognitionEvent("result", async (event) => {
-        const transcript = event.results[0]?.transcript;
-        if (transcript) {
-            setIsParsing(true); // Bắt đầu xoay loading
-            setModalVisible(true); // Hiện modal ngay để thông báo đang xử lý
-            try {
-                // Gửi text thật lên Backend AI
-                const aiResult = await parseVoiceToTransaction(transcript);
-                setParsedData({
-                    amount: aiResult.amount ? `${aiResult.amount.toLocaleString()}đ` : "0đ",
-                    note: aiResult.note || transcript,
-                    type: aiResult.type || "EXPENSE",
-                });
-            } catch (error) {
-                console.error("Lỗi AI:", error);
-            } finally {
-                setIsParsing(false); // Xử lý xong, hiện data thật
-            }
-        }
-    });
-
-    // 1. Hàm lấy số dư từ Backend
-    const fetchWalletData = async () => {
-        try {
-            const wallets = await getWalletsFromBackend();
-            if (wallets && wallets.length > 0) {
-                setWalletBalance(wallets[0].balance);
-                setWalletId(wallets[0].id);
-            }
-        } catch (error) {
-            console.warn("Lỗi lấy số dư ví:", error.message);
-        }
-    };
-
-    // 2. Hàm tải toàn bộ dữ liệu (Dùng chung cho useEffect và Refresh)
     const loadAllData = async () => {
         try {
-            const [txData, catData] = await Promise.all([
-                getTransactionsFromBackend(),
-                getCategoriesFromBackend()
+            const [txData, catData, walletData] = await Promise.all([
+                getTransactions(),
+                getCategories(),
+                getWallets(),
             ]);
 
             const normalizedTransactions = txData.slice(0, 5).map((item) => ({
                 id: item.id,
-                title: item.note || item.categoryName || 'Giao dịch',
+                title: item.note || item.categoryName || 'Giao dich',
                 amount: item.amount,
                 date: formatDate(item.transactionDate),
                 category: item.categoryName || item.walletName,
@@ -102,35 +82,120 @@ const HomeScreen = ({ onLogout }) => {
 
             setTransactions(normalizedTransactions);
             setCategories(normalizedCategories);
-            if (normalizedCategories.length > 0) setSelectedCategory(normalizedCategories[0]);
+            setWallets(walletData || []);
 
-            await fetchWalletData();
+            const activeWalletId = walletId && walletData.some((wallet) => wallet.id === walletId)
+                ? walletId
+                : walletData[0]?.id || null;
+            const activeWallet = walletData.find((wallet) => wallet.id === activeWalletId) || walletData[0];
+            setWalletId(activeWalletId);
+            setWalletBalance(activeWallet?.balance || 0);
+
+            if (normalizedCategories.length > 0 && !selectedCategory) {
+                setSelectedCategory(normalizedCategories[0]);
+            }
         } catch (error) {
-            console.error("Lỗi đồng bộ dữ liệu:", error.message);
+            console.error('Loi dong bo du lieu:', error.message);
         }
     };
 
-    // Khởi tạo dữ liệu khi vào App
+    const persistTransaction = async ({
+        walletId: nextWalletId,
+        categoryId,
+        amount,
+        type,
+        note,
+        transactionDate,
+        origin,
+        voiceText,
+    }) => {
+        const finalAmount = Number(String(amount).replace(/[^\d.]/g, ''));
+        if (Number.isNaN(finalAmount) || finalAmount <= 0) {
+            throw new Error('So tien khong hop le hoac bang 0.');
+        }
+
+        if (!nextWalletId) {
+            throw new Error('Chua tim thay vi de luu giao dich.');
+        }
+
+        await createTransaction({
+            walletId: nextWalletId,
+            categoryId: categoryId || null,
+            amount: finalAmount,
+            type,
+            note,
+            transactionDate: transactionDate || new Date().toISOString().slice(0, 19),
+            origin,
+            voiceText,
+        });
+
+        await loadAllData();
+    };
+
+    const handleSaveRecording = async () => {
+        try {
+            await persistTransaction({
+                walletId,
+                categoryId: selectedCategory?.id || null,
+                amount: parsedData.amount,
+                type: parsedData.type || 'EXPENSE',
+                note: parsedData.note,
+                origin: 'voice',
+                voiceText: parsedData.note,
+            });
+            setVoiceModalVisible(false);
+            Alert.alert('Thanh cong', 'Luu giao dich thanh cong!');
+        } catch (error) {
+            Alert.alert('Loi luu', error.message);
+        }
+    };
+
+    const handleManualSave = async (entry) => {
+        try {
+            await persistTransaction({
+                walletId: entry.walletId,
+                categoryId: entry.categoryId,
+                amount: entry.amount,
+                type: entry.type,
+                note: entry.note,
+                transactionDate: entry.transactionDate,
+                origin: 'manual',
+                voiceText: null,
+            });
+            setManualModalVisible(false);
+            Alert.alert('Thanh cong', 'Da tao giao dich moi.');
+        } catch (error) {
+            Alert.alert('Loi', error.message);
+        }
+    };
+
+    useSpeechRecognitionEvent('result', async (event) => {
+        const transcript = event.results[0]?.transcript;
+        if (!transcript) return;
+
+        setIsParsing(true);
+        setVoiceModalVisible(true);
+
+        try {
+            const aiResult = await parseVoiceToTransaction(transcript);
+            setParsedData({
+                amount: aiResult.amount ? `${aiResult.amount}` : '0',
+                note: aiResult.note || transcript,
+                type: aiResult.type || 'EXPENSE',
+            });
+        } catch (error) {
+            console.error('Loi AI:', error);
+            Alert.alert('Loi', 'Khong phan tich duoc giọng noi.');
+            setVoiceModalVisible(false);
+        } finally {
+            setIsParsing(false);
+        }
+    });
+
     useEffect(() => {
-        const checkStatus = async () => {
-            await loadAllData();
-        };
-        checkStatus();
+        loadAllData();
     }, []);
 
-    const onRefresh = async () => {
-        setRefreshing(true);
-        await loadAllData();
-        setRefreshing(false);
-    };
-
-    // 3. Helpers
-    const formatCurrency = (num) => {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
-    };
-
-    // 4. Animation Mic
-    const pulseAnim = useRef(new Animated.Value(1)).current;
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
@@ -152,32 +217,40 @@ const HomeScreen = ({ onLogout }) => {
         }
     }, [categories, parsedData.type, selectedCategory]);
 
-    // 5. Recording Logic
-    // const audioRecorder = useAudioRecorder({ sampleRate: 44100, channels: 1, bitRate: 128000 });
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadAllData();
+        setRefreshing(false);
+    };
 
     const startRecording = async () => {
+        if (isGuest) {
+            Alert.alert('Can dang nhap', 'Tinh nang ghi am hien chi ho tro khi dang nhap.');
+            return;
+        }
+
         if (!ExpoSpeechRecognitionModule) {
-            alert("Tính năng giọng nói chỉ hỗ trợ trên bản Android Build. iOS hiện đang dùng Expo Go nên không hỗ trợ.");
+            Alert.alert('Thong bao', 'Tinh nang giong noi hien khong ho tro tren moi truong nay.');
             return;
         }
 
         try {
-            // 1. Kiểm tra quyền TRƯỚC
             const status = await AudioModule.requestRecordingPermissionsAsync();
-            if (!status.granted) return alert("Cần cấp quyền Mic!");
+            if (!status.granted) {
+                Alert.alert('Thong bao', 'Can cap quyen microphone.');
+                return;
+            }
 
-            // 2. Cấu hình Audio Mode cho iOS
             await AudioModule.setAudioModeAsync({
                 allowsRecordingIOS: true,
                 interruptionModeIOS: 1,
                 playsInSilentModeIOS: true,
             });
 
-            // 3. Khởi động nhận diện (Bỏ audioRecorder.record())
-            ExpoSpeechRecognitionModule.start({ lang: "vi-VN" });
+            ExpoSpeechRecognitionModule.start({ lang: 'vi-VN' });
             setIsRecording(true);
-        } catch (err) {
-            console.error('Lỗi Mic:', err);
+        } catch (error) {
+            console.error('Loi mic:', error);
         }
     };
 
@@ -185,65 +258,26 @@ const HomeScreen = ({ onLogout }) => {
         try {
             ExpoSpeechRecognitionModule.stop();
             setIsRecording(false);
-        } catch (err) { console.error('Lỗi dừng:', err); }
-    };
-
-    // 6. Lưu giao dịch: Đẩy lên Backend + Cập nhật UI
-    const handleSaveRecording = async () => {
-        // 1. Kiểm tra ví
-        if (!walletId) {
-            return alert("Chưa tìm thấy ID ví. Hãy vuốt xuống để làm mới trang.");
-        }
-
-        // 2. Làm sạch số tiền (Xóa chữ đ, xóa dấu chấm)
-        const amountClean = parsedData.amount.replace(/[^\d]/g, '');
-        const finalAmount = parseInt(amountClean, 10);
-
-        if (isNaN(finalAmount) || finalAmount <= 0) {
-            return alert("Số tiền không hợp lệ hoặc bằng 0.");
-        }
-
-        // 3. Tạo Object gửi đi (Khớp 100% với Record Java của bạn)
-        const parsedCategoryId = Number(selectedCategory?.id);
-        const newEntry = {
-            walletId: walletId,
-            categoryId: Number.isFinite(parsedCategoryId) ? parsedCategoryId : null,
-            amount: finalAmount,
-            type: parsedData.type || "EXPENSE",
-            note: parsedData.note,
-            transactionDate: new Date().toISOString().slice(0, 19),
-        };
-
-        try {
-            await createTransactionOnBackend(newEntry);
-            await loadAllData(); // Tải lại số dư và lịch sử ngay lập tức
-            setModalVisible(false);
-            alert("Lưu giao dịch thành công!");
         } catch (error) {
-            // Hiện lỗi chi tiết từ GlobalExceptionHandler để dễ bắt bệnh
-            alert("Lỗi lưu: " + error.message);
+            console.error('Loi dung ghi am:', error);
         }
     };
 
-    // === SECTION 4: MAIN RENDER ===
     return (
         <View style={styles.container}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                refreshControl={
+                refreshControl={(
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={[COLORS.primary]} // Màu vòng xoay tải
+                        colors={[COLORS.primary]}
                     />
-                }
+                )}
             >
-                {/* Header & Tổng tiền */}
                 <View style={styles.header}>
-                    {/* <Text style={styles.welcomeText}>Chào Hiệp 👋</Text> */}
-
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                        <Text style={styles.welcomeText}>Chào Hiệp 👋</Text>
+                        <Text style={styles.welcomeText}>{isGuest ? 'Dang dung guest mode' : 'Tong quan chi tieu'}</Text>
                         <TouchableOpacity onPress={handleLogout} style={{ padding: 5 }}>
                             <LucideLogOut color={COLORS.danger} size={22} />
                         </TouchableOpacity>
@@ -252,14 +286,12 @@ const HomeScreen = ({ onLogout }) => {
                     <View style={styles.balanceCard}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                             <View>
-                                {/* Hiển thị số tiền hoặc dấu hoa thị dựa trên trạng thái bảo mật */}
                                 <Text style={styles.balanceAmount}>
-                                    {isBalanceVisible ? formatCurrency(walletBalance) : "******"}
+                                    {isBalanceVisible ? formatCurrency(walletBalance) : '******'}
                                 </Text>
-                                <Text style={{ color: COLORS.textSub, fontSize: 12 }}>Số dư ví hiện tại</Text>
+                                <Text style={{ color: COLORS.textSub, fontSize: 12 }}>So du vi hien tai</Text>
                             </View>
 
-                            {/* Nút ẩn/hiện số dư */}
                             <TouchableOpacity
                                 onPress={() => setIsBalanceVisible(!isBalanceVisible)}
                                 style={{ padding: 10 }}
@@ -274,92 +306,135 @@ const HomeScreen = ({ onLogout }) => {
                     </View>
                 </View>
 
-                {/* Danh sách Giao dịch gần đây */}
                 <View style={styles.historyContainer}>
                     <View style={styles.historyHeader}>
-                        <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
+                        <Text style={styles.sectionTitle}>Giao dich gan day</Text>
+                        <TouchableOpacity
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 6,
+                                backgroundColor: COLORS.primaryLight,
+                                paddingHorizontal: 12,
+                                paddingVertical: 8,
+                                borderRadius: 999,
+                            }}
+                            onPress={() => setManualModalVisible(true)}
+                        >
+                            <LucideCirclePlus color={COLORS.primary} size={16} />
+                            <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Them thu cong</Text>
+                        </TouchableOpacity>
                     </View>
+
                     {transactions.length > 0 ? (
-                        transactions.map(item => (
-                            <TransactionItem key={item.id} title={item.title} amount={item.amount} date={item.date} category={item.category} type={item.type} />
+                        transactions.map((item) => (
+                            <TransactionItem
+                                key={item.id}
+                                title={item.title}
+                                amount={item.amount}
+                                date={item.date}
+                                category={item.category}
+                                type={item.type}
+                            />
                         ))
                     ) : (
-                        <Text style={{ color: COLORS.textSub, textAlign: 'center', marginVertical: 20 }}>Chưa có giao dịch nào</Text>
+                        <Text style={{ color: COLORS.textSub, textAlign: 'center', marginVertical: 20 }}>
+                            Chua co giao dich nao
+                        </Text>
                     )}
                 </View>
 
-                {/* Nút Mic ghi âm */}
                 <View style={styles.micWrapper}>
-                    <Animated.View style={[styles.micRing, { transform: [{ scale: pulseAnim }], opacity: isRecording ? 0.8 : 0.4 }]} />
-                    <TouchableOpacity style={[styles.micButton, isRecording && { backgroundColor: COLORS.danger }]} onPressIn={startRecording} onPressOut={stopRecording}>
+                    <Animated.View
+                        style={[
+                            styles.micRing,
+                            {
+                                transform: [{ scale: pulseAnim }],
+                                opacity: isGuest ? 0.15 : (isRecording ? 0.8 : 0.4),
+                            },
+                        ]}
+                    />
+                    <TouchableOpacity
+                        style={[
+                            styles.micButton,
+                            isRecording && { backgroundColor: COLORS.danger },
+                            isGuest && { opacity: 0.45 },
+                        ]}
+                        onPressIn={startRecording}
+                        onPressOut={stopRecording}
+                    >
                         <LucideMic color="#fff" size={32} />
                     </TouchableOpacity>
-                    <Text style={styles.micHint}>{isRecording ? "Đang nghe..." : "Nhấn giữ để nói"}</Text>
+                    <Text style={styles.micHint}>
+                        {isGuest ? 'Dang nhap de dung voice' : (isRecording ? 'Dang nghe...' : 'Nhan giu de noi')}
+                    </Text>
                 </View>
 
-                {/* Modal Xác nhận từ AI */}
-                <Modal transparent visible={isModalVisible} animationType="slide">
+                <Modal transparent visible={isVoiceModalVisible} animationType="slide">
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHandle} />
 
                             {isParsing ? (
                                 <View style={{ padding: 40, alignItems: 'center' }}>
-                                    <Text style={{ color: COLORS.primary, fontWeight: '600' }}>🤖 AI ĐANG PHÂN TÍCH...</Text>
-                                    <Text style={{ color: COLORS.textSub, fontSize: 12, marginTop: 10 }}>Vui lòng đợi trong giây lát</Text>
+                                    <Text style={{ color: COLORS.primary, fontWeight: '600' }}>AI dang phan tich...</Text>
+                                    <Text style={{ color: COLORS.textSub, fontSize: 12, marginTop: 10 }}>Vui long doi mot chut</Text>
                                 </View>
                             ) : (
                                 <>
                                     <Text style={styles.modalTitle}>
-                                        {parsedData.type === 'INCOME' ? 'Xác nhận thu nhập' : 'Xác nhận chi tiêu'}
+                                        {parsedData.type === 'INCOME' ? 'Xac nhan thu nhap' : 'Xac nhan chi tieu'}
                                     </Text>
 
                                     <View style={styles.amountBox}>
-                                        <Text style={styles.amountLabel}>SỐ TIỀN</Text>
-                                        <Text style={styles.amountValue}>{parsedData.amount}</Text>
+                                        <Text style={styles.amountLabel}>SO TIEN</Text>
+                                        <Text style={styles.amountValue}>{formatCurrency(parsedData.amount)}</Text>
                                     </View>
 
                                     <View style={styles.noteBox}>
-                                        <Text style={styles.noteLabel}>GHI CHÚ</Text>
+                                        <Text style={styles.noteLabel}>GHI CHU</Text>
                                         <Text style={styles.noteValue}>{parsedData.note}</Text>
                                     </View>
 
-                                    <Text style={styles.subTitle}>Hạng mục</Text>
+                                    <Text style={styles.subTitle}>Hang muc</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-                                        {filteredCategoriesByType.map(cat => (
+                                        {filteredCategoriesByType.map((category) => (
                                             <TouchableOpacity
-                                                key={cat.id}
-                                                onPress={() => setSelectedCategory(cat)}
-                                                style={[styles.chip, selectedCategory?.id === cat.id && styles.chipActive]}
+                                                key={category.id}
+                                                onPress={() => setSelectedCategory(category)}
+                                                style={[styles.chip, selectedCategory?.id === category.id && styles.chipActive]}
                                             >
-                                                <Text style={[styles.chipText, selectedCategory?.id === cat.id && styles.chipTextActive]}>
-                                                    {cat.name}
+                                                <Text style={[styles.chipText, selectedCategory?.id === category.id && styles.chipTextActive]}>
+                                                    {category.name}
                                                 </Text>
                                             </TouchableOpacity>
                                         ))}
-                                        {filteredCategoriesByType.length === 0 ? (
-                                            <Text style={{ color: COLORS.textSub, fontSize: 12 }}>
-                                                Chưa có hạng mục phù hợp, bạn có thể để trống.
-                                            </Text>
-                                        ) : null}
                                     </ScrollView>
 
                                     <TouchableOpacity style={styles.btnConfirm} onPress={handleSaveRecording}>
-                                        <Text style={styles.btnTextConfirm}>XÁC NHẬN LƯU</Text>
+                                        <Text style={styles.btnTextConfirm}>XAC NHAN LUU</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity style={styles.btnCancel} onPress={() => setModalVisible(false)}>
-                                        <Text style={styles.btnTextCancel}>Hủy bỏ</Text>
+                                    <TouchableOpacity style={styles.btnCancel} onPress={() => setVoiceModalVisible(false)}>
+                                        <Text style={styles.btnTextCancel}>Huy bo</Text>
                                     </TouchableOpacity>
                                 </>
                             )}
                         </View>
                     </View>
                 </Modal>
+
+                <AddTransactionModal
+                    visible={isManualModalVisible}
+                    wallets={wallets}
+                    categories={categories}
+                    defaultWalletId={walletId}
+                    onClose={() => setManualModalVisible(false)}
+                    onSave={handleManualSave}
+                />
             </ScrollView>
         </View>
     );
-
 };
 
 export default HomeScreen;

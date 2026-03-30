@@ -51,4 +51,6 @@ public class Transaction {
     @Column(name = "AI_RAW_RESPONSE")
     @Lob // CLOB
     private String aiRawResponse; // JSON thô từ GPT để debug
+    @Column(name = "SOURCE_LOCAL_ID", length = 120)
+    private String sourceLocalId;
 }

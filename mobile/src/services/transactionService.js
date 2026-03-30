@@ -1,26 +1,41 @@
-import { apiRequest } from './apiClient';
+import {
+    createTransactionOnApi,
+    deleteTransactionOnApi,
+    getTransactionsByWalletFromApi,
+    getTransactionsFromApi,
+} from '../data/api/transactionApi';
+import {
+    createTransactionLocal,
+    deleteTransactionLocal,
+    listTransactionsByWalletLocal,
+    listTransactionsLocal,
+} from '../data/guest/transactionRepo';
+import { getSessionMode, SESSION_MODES } from './sessionService';
 
-// Lấy tất cả giao dịch của user
-export const getTransactionsFromBackend = async () => {
-    return await apiRequest('/transactions');
-};
+const useGuestTransactions = async () => (await getSessionMode()) === SESSION_MODES.GUEST;
 
-// Lấy giao dịch theo ví
-export const getTransactionsByWallet = async (walletId) => {
-    return await apiRequest(`/transactions/wallet/${walletId}`);
-};
+export const getTransactions = async () => (
+    await useGuestTransactions() ? listTransactionsLocal() : getTransactionsFromApi()
+);
 
-// Tạo giao dịch mới
-export const createTransactionOnBackend = async (transactionData) => {
-    return await apiRequest('/transactions', {
-        method: 'POST',
-        body: JSON.stringify(transactionData),
-    });
-};
+export const getTransactionsByWallet = async (walletId) => (
+    await useGuestTransactions()
+        ? listTransactionsByWalletLocal(walletId)
+        : getTransactionsByWalletFromApi(walletId)
+);
 
-// Xóa giao dịch
-export const deleteTransactionOnBackend = async (transactionId) => {
-    return await apiRequest(`/transactions/${transactionId}`, {
-        method: 'DELETE',
-    });
-};
+export const createTransaction = async (transactionData) => (
+    await useGuestTransactions()
+        ? createTransactionLocal(transactionData)
+        : createTransactionOnApi(transactionData)
+);
+
+export const deleteTransaction = async (transactionId) => (
+    await useGuestTransactions()
+        ? deleteTransactionLocal(transactionId)
+        : deleteTransactionOnApi(transactionId)
+);
+
+export const getTransactionsFromBackend = getTransactions;
+export const createTransactionOnBackend = createTransaction;
+export const deleteTransactionOnBackend = deleteTransaction;

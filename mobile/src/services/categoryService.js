@@ -1,23 +1,38 @@
-import { apiRequest } from './apiClient';
+import {
+  createCategoryOnApi,
+  deleteCategoryOnApi,
+  getCategoriesFromApi,
+  getCategoryByIdFromApi,
+} from '../data/api/categoryApi';
+import {
+  createCategoryLocal,
+  deleteCategoryLocal,
+  getCategoryByIdLocal,
+  listCategoriesLocal,
+} from '../data/guest/categoryRepo';
+import { getSessionMode, SESSION_MODES } from './sessionService';
 
-export const getCategoriesFromBackend = async (type) => {
-  const query = type ? `?type=${encodeURIComponent(type)}` : '';
-  return await apiRequest(`/categories${query}`);
-};
+const useGuestCategories = async () => (await getSessionMode()) === SESSION_MODES.GUEST;
 
-export const getCategoryByIdFromBackend = async (id) => {
-  return await apiRequest(`/categories/${id}`);
-};
+export const getCategories = async (type) => (
+  await useGuestCategories() ? listCategoriesLocal(type) : getCategoriesFromApi(type)
+);
 
-export const createCategoryOnBackend = async ({ name, type, icon }) => {
-  return await apiRequest('/categories', {
-    method: 'POST',
-    body: JSON.stringify({ name, type, icon }),
-  });
-};
+export const getCategoryById = async (id) => (
+  await useGuestCategories() ? getCategoryByIdLocal(id) : getCategoryByIdFromApi(id)
+);
 
-export const deleteCategoryOnBackend = async (id) => {
-  return await apiRequest(`/categories/${id}`, {
-    method: 'DELETE',
-  });
-};
+export const createCategory = async ({ name, type, icon }) => (
+  await useGuestCategories()
+    ? createCategoryLocal({ name, type, icon })
+    : createCategoryOnApi({ name, type, icon })
+);
+
+export const deleteCategory = async (id) => (
+  await useGuestCategories() ? deleteCategoryLocal(id) : deleteCategoryOnApi(id)
+);
+
+export const getCategoriesFromBackend = getCategories;
+export const getCategoryByIdFromBackend = getCategoryById;
+export const createCategoryOnBackend = createCategory;
+export const deleteCategoryOnBackend = deleteCategory;
