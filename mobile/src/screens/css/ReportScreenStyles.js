@@ -13,6 +13,7 @@ export const styles = StyleSheet.create({
     headerSubtitle: { color: COLORS.primaryLight, fontSize: 12 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
     monthPicker: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center' },
+    monthPickerDisabled: { opacity: 0.45 },
     monthText: { color: '#fff', fontSize: 12 },
 
     content: { padding: 16 },
@@ -22,6 +23,22 @@ export const styles = StyleSheet.create({
     summaryCard: { flex: 1, padding: 12, borderRadius: 20, elevation: 4 },
     sumLabel: { color: '#fff', fontSize: 10, opacity: 0.8 },
     sumValue: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginTop: 4 },
+    filterRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+    filterChip: {
+        flex: 1,
+        borderRadius: 14,
+        paddingVertical: 10,
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    filterChipActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    filterChipText: { color: COLORS.textSub, fontSize: 13, fontWeight: '600' },
+    filterChipTextActive: { color: '#fff' },
 
     // Thẻ trắng đè lên Header (Overlap effect)
     whiteCard: { backgroundColor: COLORS.cardBg, padding: 20, borderRadius: 24, marginBottom: 20, elevation: 2, marginTop: -25 },
@@ -38,6 +55,7 @@ export const styles = StyleSheet.create({
     miniBarBg: { flex: 1, height: 6, backgroundColor: COLORS.border, borderRadius: 3, marginHorizontal: 10, overflow: 'hidden' },
     miniBarFill: { height: '100%', borderRadius: 3 },
     catPercent: { width: 30, fontSize: 12, color: COLORS.textLight, textAlign: 'right' },
+    emptyStateText: { marginTop: 14, color: COLORS.textSub, fontSize: 13 },
 
     // Alerts & Suggestions
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: 10 },
