@@ -13,18 +13,35 @@ export const styles = StyleSheet.create({
     headerSubtitle: { color: COLORS.primaryLight, fontSize: 12 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
     monthPicker: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center' },
+    monthPickerDisabled: { opacity: 0.45 },
     monthText: { color: '#fff', fontSize: 12 },
 
     content: { padding: 16 },
 
     // Hàng tóm tắt nằm trong Header
-    summaryRow: { flexDirection: 'row', gap: 10, marginTop: -8, marginBottom: 40 },
+    summaryRow: { flexDirection: 'row', gap: 10, marginTop: -8, marginBottom: 20 },
     summaryCard: { flex: 1, padding: 12, borderRadius: 20, elevation: 4 },
     sumLabel: { color: '#fff', fontSize: 10, opacity: 0.8 },
     sumValue: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginTop: 4 },
+    filterRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    filterChip: {
+        flex: 1,
+        borderRadius: 14,
+        paddingVertical: 10,
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    filterChipActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    filterChipText: { color: COLORS.textSub, fontSize: 13, fontWeight: '600' },
+    filterChipTextActive: { color: '#fff' },
 
     // Thẻ trắng đè lên Header (Overlap effect)
-    whiteCard: { backgroundColor: COLORS.cardBg, padding: 20, borderRadius: 24, marginBottom: 20, elevation: 2, marginTop: -25 },
+    whiteCard: { backgroundColor: COLORS.cardBg, padding: 20, borderRadius: 24, marginBottom: 20, elevation: 2, marginTop: 0 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     cardTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain },
     badgeText: { fontSize: 12, color: COLORS.primary, backgroundColor: COLORS.primaryLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
@@ -38,6 +55,7 @@ export const styles = StyleSheet.create({
     miniBarBg: { flex: 1, height: 6, backgroundColor: COLORS.border, borderRadius: 3, marginHorizontal: 10, overflow: 'hidden' },
     miniBarFill: { height: '100%', borderRadius: 3 },
     catPercent: { width: 30, fontSize: 12, color: COLORS.textLight, textAlign: 'right' },
+    emptyStateText: { marginTop: 14, color: COLORS.textSub, fontSize: 13 },
 
     // Alerts & Suggestions
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: 10 },
@@ -56,7 +74,7 @@ export const styles = StyleSheet.create({
     suggestAmount: { fontSize: 12, color: COLORS.success, marginTop: 2 },
 
     // START SECTION: AI INSIGHTS & TREND CHART
-    insightsCard: { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, marginBottom: 20 },
+    insightsCard: { backgroundColor: '#fff', marginHorizontal: 0, borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, marginBottom: 20 },
     insightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
     insightTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     insightIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F5F3FF', justifyContent: 'center', alignItems: 'center' },
