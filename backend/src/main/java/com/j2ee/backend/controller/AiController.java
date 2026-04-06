@@ -29,22 +29,22 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
-@Tag(name = "AI", description = "API tạo advice và parse giao dịch từ voice text.")
+@Tag(name = "AI", description = "API tao advice va parse giao dich tu voice text.")
 @SecurityRequirement(name = "bearerAuth")
 public class AiController {
 
     private final AiService aiService;
 
     @PostMapping("/advice/generate")
-    @Operation(summary = "Sinh lời khuyên AI theo kỳ báo cáo")
+    @Operation(summary = "Sinh loi khuyen AI theo ky bao cao")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Sinh lời khuyên thành công", content = @Content(schema = @Schema(implementation = AiAdviceResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ", content = {
+            @ApiResponse(responseCode = "200", description = "Sinh loi khuyen thanh cong", content = @Content(schema = @Schema(implementation = AiAdviceResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Du lieu khong hop le", content = {
                     @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class)),
                     @Content(schema = @Schema(implementation = ApiErrorResponse.class))
             }),
-            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "401", description = "Chua xac thuc", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Loi he thong", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     public ResponseEntity<AiAdviceResponse> generateAdvice(
             @Parameter(hidden = true) Authentication authentication,
@@ -53,21 +53,22 @@ public class AiController {
         String period = (request != null && request.period() != null)
                 ? request.period()
                 : YearMonth.now().toString();
+        Long walletId = request != null ? request.walletId() : null;
 
         YearMonth yearMonth = YearMonth.parse(period);
         LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59);
 
-        AiAdviceLog advice = aiService.generateAdvice(username, startDate, endDate);
+        AiAdviceLog advice = aiService.generateAdvice(username, startDate, endDate, walletId);
         return ResponseEntity.ok(toResponse(advice));
     }
 
     @GetMapping("/advice/history")
-    @Operation(summary = "Lấy lịch sử lời khuyên AI")
+    @Operation(summary = "Lay lich su loi khuyen AI")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lấy dữ liệu thành công", content = @Content(array = @ArraySchema(schema = @Schema(implementation = AiAdviceResponse.class)))),
-            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Lay du lieu thanh cong", content = @Content(array = @ArraySchema(schema = @Schema(implementation = AiAdviceResponse.class)))),
+            @ApiResponse(responseCode = "401", description = "Chua xac thuc", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Loi he thong", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     public ResponseEntity<List<AiAdviceResponse>> getAdviceHistory(
             @Parameter(hidden = true) Authentication authentication) {
@@ -77,12 +78,12 @@ public class AiController {
     }
 
     @PostMapping("/voice/parse")
-    @Operation(summary = "Parse giao dịch từ voice text", description = "Hiện tại parse theo rule đơn giản từ trường voiceText.")
+    @Operation(summary = "Parse giao dich tu voice text", description = "Hien tai parse theo rule don gian tu truong voiceText.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Parse thành công", content = @Content(schema = @Schema(implementation = AiService.VoiceTransactionData.class))),
-            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ", content = @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
-            @ApiResponse(responseCode = "500", description = "Lỗi hệ thống", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Parse thanh cong", content = @Content(schema = @Schema(implementation = AiService.VoiceTransactionData.class))),
+            @ApiResponse(responseCode = "400", description = "Du lieu khong hop le", content = @Content(schema = @Schema(implementation = ApiValidationErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Chua xac thuc", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Loi he thong", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     public ResponseEntity<AiService.VoiceTransactionData> parseVoiceInput(
             @Valid @RequestBody VoiceParseRequest request) {

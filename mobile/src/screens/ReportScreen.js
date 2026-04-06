@@ -14,6 +14,7 @@ import { styles } from './css/ReportScreenStyles';
 import { COLORS } from '../theme/colors';
 import { getFilteredTransactions, getMonthlyReport } from '../services/reportService';
 import { generateAiAdvice, getAiAdviceHistory } from '../services/aiService';
+import { getWallets } from '../services/walletService';
 
 const REPORT_TYPE_OPTIONS = [
     { key: 'ALL', label: 'Tat ca' },
@@ -77,10 +78,10 @@ const formatCompactMoney = (value) => {
     if (Math.abs(amount) >= 1000000) {
         return `${(amount / 1000000).toFixed(1)}M`;
     }
-    return `${Math.round(amount).toLocaleString('vi-VN')}đ`;
+    return `${Math.round(amount).toLocaleString('vi-VN')}d`;
 };
 
-const formatMoney = (value) => `${Math.round(toNumber(value)).toLocaleString('vi-VN')}đ`;
+const formatMoney = (value) => `${Math.round(toNumber(value)).toLocaleString('vi-VN')}d`;
 
 const calculateChangePercent = (currentValue, previousValue) => {
     const current = toNumber(currentValue);
@@ -97,10 +98,15 @@ const ReportScreen = ({ sessionMode }) => {
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
     const [catStats, setCatStats] = useState([]);
     const [alerts, setAlerts] = useState([]);
+    const [walletOptions, setWalletOptions] = useState([]);
+    const [selectedWalletId, setSelectedWalletId] = useState(null);
     const [activeTrendTab, setActiveTrendTab] = useState('trend');
     const [reportDate, setReportDate] = useState({ month: '--', year: '----' });
     const [loading, setLoading] = useState(true);
+    const [reportError, setReportError] = useState('');
     const [aiAdviceText, setAiAdviceText] = useState('Dang tai goi y AI...');
+    const [aiAdviceSource, setAiAdviceSource] = useState('/api/ai/advice/history');
+    const [isRefreshingAdvice, setIsRefreshingAdvice] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod);
     const [typeFilter, setTypeFilter] = useState('ALL');
     const [trendData, setTrendData] = useState([]);
@@ -129,20 +135,88 @@ const ReportScreen = ({ sessionMode }) => {
         labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
     };
 
+    const loadWalletOptions = async () => {
+        try {
+            const wallets = await getWallets();
+            setWalletOptions(wallets || []);
+            setSelectedWalletId((current) => {
+                if (current && wallets?.some((wallet) => wallet.id === current)) {
+                    return current;
+                }
+                return null;
+            });
+        } catch (error) {
+            console.warn('Loi tai danh sach vi:', error.message);
+            setWalletOptions([]);
+            setSelectedWalletId(null);
+        }
+    };
+
+    const loadAiAdvice = async ({ forceRefresh = false } = {}) => {
+        if (isGuest) {
+            setAiAdviceText('Guest mode dang dung thong ke local. Dang nhap de xem AI advice.');
+            setAiAdviceSource('guest-local');
+            return;
+        }
+
+        if (typeFilter !== 'ALL') {
+            setAiAdviceText('Goi y AI hien duoc hien theo tong quan ky. Chon "Tat ca" de xem.');
+            setAiAdviceSource('filter-blocked');
+            return;
+        }
+
+        setAiAdviceText('Dang tai goi y AI...');
+        setAiAdviceSource('/api/ai/advice/generate');
+
+        try {
+            if (!forceRefresh) {
+                const history = await getAiAdviceHistory();
+                const matchedAdvice = history?.find((item) => item.period === selectedPeriod);
+
+                if (matchedAdvice?.adviceText) {
+                    setAiAdviceText(matchedAdvice.adviceText);
+                    setAiAdviceSource('/api/ai/advice/history');
+                    return;
+                }
+            }
+
+            const generated = await generateAiAdvice({
+                period: selectedPeriod,
+                walletId: selectedWalletId,
+            });
+            setAiAdviceText(generated?.adviceText || 'Chua co goi y AI.');
+            setAiAdviceSource('/api/ai/advice/generate');
+        } catch (error) {
+            setAiAdviceText(`Khong tai duoc goi y AI: ${error.message}`);
+            setAiAdviceSource('error');
+        }
+    };
+
+    const handleRegenerateAdvice = async () => {
+        setIsRefreshingAdvice(true);
+        try {
+            await loadAiAdvice({ forceRefresh: true });
+        } finally {
+            setIsRefreshingAdvice(false);
+        }
+    };
+
     const fetchReportData = async () => {
         try {
             setLoading(true);
+            setReportError('');
             const normalizedType = typeFilter === 'ALL' ? undefined : typeFilter;
+            const walletId = selectedWalletId || undefined;
             const { startDate, endDate } = getPeriodBounds(selectedPeriod);
             const trendPeriods = buildTrendPeriods(selectedPeriod);
 
             const [responseData, filteredTransactions, trendReports] = await Promise.all([
-                getMonthlyReport({ period: selectedPeriod, type: normalizedType }),
-                getFilteredTransactions({ startDate, endDate, type: normalizedType }),
+                getMonthlyReport({ period: selectedPeriod, walletId, type: normalizedType }),
+                getFilteredTransactions({ startDate, endDate, walletId, type: normalizedType }),
                 Promise.all(
                     trendPeriods.map(async (period) => ({
                         period,
-                        report: await getMonthlyReport({ period, type: normalizedType }),
+                        report: await getMonthlyReport({ period, walletId, type: normalizedType }),
                     }))
                 ),
             ]);
@@ -184,61 +258,45 @@ const ReportScreen = ({ sessionMode }) => {
             }
 
             if (typeFilter !== 'INCOME' && topExpenseCategory) {
-                nextAlerts.push(
-                    `Hang muc chi nhieu nhat: ${topExpenseCategory.categoryName} (${formatMoney(topExpenseCategory.total)}).`
-                );
+                nextAlerts.push(`Hang muc chi nhieu nhat: ${topExpenseCategory.categoryName} (${formatMoney(topExpenseCategory.total)}).`);
             }
 
             if (typeFilter === 'INCOME' && topIncomeCategory) {
-                nextAlerts.push(
-                    `Nguon thu noi bat: ${topIncomeCategory.categoryName} (${formatMoney(topIncomeCategory.total)}).`
-                );
+                nextAlerts.push(`Nguon thu noi bat: ${topIncomeCategory.categoryName} (${formatMoney(topIncomeCategory.total)}).`);
             }
 
             setAlerts(nextAlerts);
             setPeriodTransactions(filteredTransactions.slice(0, 5));
             setTrendData(trendReports.map(({ period, report }) => ({
                 label: `T${Number(period.split('-')[1])}`,
-                value: (
-                    typeFilter === 'INCOME'
-                        ? toNumber(report.totalIncome)
-                        : toNumber(report.totalExpense)
-                ) / 1000000,
+                value: (typeFilter === 'INCOME' ? toNumber(report.totalIncome) : toNumber(report.totalExpense)) / 1000000,
             })));
-
-            if (isGuest) {
-                setAiAdviceText('Guest mode dang dung thong ke local. Dang nhap de xem AI advice.');
-                return;
-            }
-
-            if (typeFilter !== 'ALL') {
-                setAiAdviceText('Goi y AI hien duoc hien theo tong quan ky. Chon "Tat ca" de xem.');
-                return;
-            }
-
-            try {
-                const history = await getAiAdviceHistory();
-                const latestAdvice = history?.find((item) => item.period === selectedPeriod)?.adviceText
-                    || history?.[0]?.adviceText;
-                if (latestAdvice) {
-                    setAiAdviceText(latestAdvice);
-                } else {
-                    const generated = await generateAiAdvice(selectedPeriod);
-                    setAiAdviceText(generated?.adviceText || 'Chua co goi y AI.');
-                }
-            } catch (adviceError) {
-                setAiAdviceText(`Khong tai duoc goi y AI: ${adviceError.message}`);
-            }
         } catch (error) {
             console.warn('Loi tai report:', error.message);
+            setReportError(error.message || 'Khong tai duoc bao cao.');
+            setSummary({ income: 0, expense: 0, balance: 0 });
+            setCatStats([]);
+            setAlerts([]);
+            setTrendData([]);
+            setPeriodTransactions([]);
+            setIncomeChangePercent(0);
+            setExpenseChangePercent(0);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
+        loadWalletOptions();
+    }, [sessionMode]);
+
+    useEffect(() => {
         fetchReportData();
-    }, [selectedPeriod, sessionMode, typeFilter]);
+    }, [selectedPeriod, sessionMode, typeFilter, selectedWalletId]);
+
+    useEffect(() => {
+        loadAiAdvice();
+    }, [selectedPeriod, sessionMode, typeFilter, selectedWalletId]);
 
     const canGoNextPeriod = selectedPeriod !== currentPeriod;
     const periodTitle = formatPeriodLabel(selectedPeriod);
@@ -256,7 +314,7 @@ const ReportScreen = ({ sessionMode }) => {
                 <View style={styles.headerInfo}>
                     <Text style={styles.headerTitle}>Bao cao tai chinh</Text>
                     <Text style={styles.headerSubtitle}>
-                        {periodTitle}{isGuest ? ' • Guest' : ''}
+                        {periodTitle}{isGuest ? ' � Guest' : ''}
                     </Text>
                 </View>
                 <TouchableOpacity
@@ -276,6 +334,37 @@ const ReportScreen = ({ sessionMode }) => {
                 </View>
             ) : (
                 <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
+                    {reportError ? (
+                        <View style={[styles.alertCard, { backgroundColor: '#FEF2F2', marginTop: 20 }]}> 
+                            <Text style={styles.alertText}>{`Khong tai duoc bao cao: ${reportError}`}</Text>
+                        </View>
+                    ) : null}
+
+                    <View style={styles.walletFilterWrap}>
+                        <Text style={styles.walletFilterTitle}>Pham vi bao cao</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.walletFilterRow}>
+                            <TouchableOpacity
+                                style={[styles.walletChip, selectedWalletId === null && styles.walletChipActive]}
+                                onPress={() => setSelectedWalletId(null)}
+                            >
+                                <Text style={[styles.walletChipText, selectedWalletId === null && styles.walletChipTextActive]}>
+                                    Tat ca vi
+                                </Text>
+                            </TouchableOpacity>
+                            {walletOptions.map((wallet) => (
+                                <TouchableOpacity
+                                    key={wallet.id}
+                                    style={[styles.walletChip, selectedWalletId === wallet.id && styles.walletChipActive]}
+                                    onPress={() => setSelectedWalletId(wallet.id)}
+                                >
+                                    <Text style={[styles.walletChipText, selectedWalletId === wallet.id && styles.walletChipTextActive]}>
+                                        {wallet.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
                     <View style={styles.summaryRow}>
                         <View style={[styles.summaryCard, { backgroundColor: COLORS.primary }]}>
                             <Text style={styles.sumLabel}>Thu nhap</Text>
@@ -436,7 +525,7 @@ const ReportScreen = ({ sessionMode }) => {
                                             <Text style={styles.donutCenterText}>
                                                 {typeFilter === 'INCOME' ? 'Tong thu' : 'Tong chi'}
                                             </Text>
-                                            <Text style={styles.donutCenterAmount}>0đ</Text>
+                                            <Text style={styles.donutCenterAmount}>0d</Text>
                                             <Text style={styles.emptyDonutHint}>Chua co du lieu phan bo</Text>
                                         </View>
                                     )}
@@ -495,17 +584,28 @@ const ReportScreen = ({ sessionMode }) => {
 
                     {!isGuest ? (
                         <>
-                            <View style={styles.sectionHeader}>
-                                <LucideLightbulb size={18} color="#10B981" />
-                                <Text style={styles.sectionTitle}> Goi y tu AI</Text>
+                            <View style={styles.sectionHeaderBetween}>
+                                <View style={styles.sectionHeaderInline}>
+                                    <LucideLightbulb size={18} color="#10B981" />
+                                    <Text style={styles.sectionTitle}> Goi y tu AI</Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={[styles.refreshAdviceButton, isRefreshingAdvice && styles.refreshAdviceButtonDisabled]}
+                                    onPress={handleRegenerateAdvice}
+                                    disabled={isRefreshingAdvice || typeFilter !== 'ALL'}
+                                >
+                                    <Text style={styles.refreshAdviceButtonText}>
+                                        {isRefreshingAdvice ? 'Dang tao...' : 'Tao lai goi y AI'}
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                             <TouchableOpacity style={styles.suggestionCard}>
                                 <View style={styles.suggestIcon}>
                                     <Text style={{ color: '#fff', fontWeight: 'bold' }}>AI</Text>
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.suggestTitle} numberOfLines={2}>{aiAdviceText}</Text>
-                                    <Text style={styles.suggestAmount}>Nguon: /api/ai/advice/history</Text>
+                                    <Text style={styles.suggestTitle}>{aiAdviceText}</Text>
+                                    <Text style={styles.suggestAmount}>{`Nguon: ${aiAdviceSource}`}</Text>
                                 </View>
                             </TouchableOpacity>
                         </>

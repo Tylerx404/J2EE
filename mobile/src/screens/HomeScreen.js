@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { AudioModule } from 'expo-audio';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { LucideCirclePlus, LucideEye, LucideEyeOff, LucideLogOut, LucideMic } from 'lucide-react-native';
+import { LucideChevronDown, LucideCirclePlus, LucideEye, LucideEyeOff, LucideLogOut, LucideMic } from 'lucide-react-native';
 
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionItem from '../components/TransactionItem';
@@ -20,7 +20,7 @@ import { COLORS } from '../theme/colors';
 import { logout } from '../services/authService';
 import { parseVoiceToTransaction } from '../services/aiService';
 import { getCategories } from '../services/categoryService';
-import { createTransaction, getTransactions } from '../services/transactionService';
+import { createTransaction, getTransactionsByWallet } from '../services/transactionService';
 import { getWallets } from '../services/walletService';
 import { styles } from './css/HomeScreenStyles';
 
@@ -37,6 +37,7 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
     const [isVoiceModalVisible, setVoiceModalVisible] = useState(false);
     const [isManualModalVisible, setManualModalVisible] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
+    const [isWalletPickerOpen, setWalletPickerOpen] = useState(false);
     const [parsedData, setParsedData] = useState({ amount: '0d', note: '', type: 'EXPENSE' });
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -51,28 +52,30 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     const formatCurrency = (num) => `${Math.round(Number(num || 0)).toLocaleString('vi-VN')}d`;
+    const selectedWalletName = wallets.find((wallet) => wallet.id === walletId)?.name || 'Chon vi';
 
     const handleLogout = async () => {
         await logout();
         onLogout?.();
     };
 
-    const loadAllData = async () => {
+    const normalizeTransactions = (txData) => (
+        (txData || []).slice(0, 5).map((item) => ({
+            id: item.id,
+            title: item.note || item.categoryName || 'Giao dich',
+            amount: item.amount,
+            date: formatDate(item.transactionDate),
+            category: item.categoryName || item.walletName,
+            type: item.type || 'EXPENSE',
+        }))
+    );
+
+    const loadAllData = async (preferredWalletId = walletId) => {
         try {
-            const [txData, catData, walletData] = await Promise.all([
-                getTransactions(),
+            const [catData, walletData] = await Promise.all([
                 getCategories(),
                 getWallets(),
             ]);
-
-            const normalizedTransactions = txData.slice(0, 5).map((item) => ({
-                id: item.id,
-                title: item.note || item.categoryName || 'Giao dich',
-                amount: item.amount,
-                date: formatDate(item.transactionDate),
-                category: item.categoryName || item.walletName,
-                type: item.type || 'EXPENSE',
-            }));
 
             const normalizedCategories = catData.map((item) => ({
                 id: item.id,
@@ -80,14 +83,15 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
                 type: item.type,
             }));
 
-            setTransactions(normalizedTransactions);
-            setCategories(normalizedCategories);
-            setWallets(walletData || []);
-
-            const activeWalletId = walletId && walletData.some((wallet) => wallet.id === walletId)
-                ? walletId
+            const activeWalletId = preferredWalletId && walletData.some((wallet) => wallet.id === preferredWalletId)
+                ? preferredWalletId
                 : walletData[0]?.id || null;
             const activeWallet = walletData.find((wallet) => wallet.id === activeWalletId) || walletData[0];
+            const txData = activeWalletId ? await getTransactionsByWallet(activeWalletId) : [];
+
+            setTransactions(normalizeTransactions(txData));
+            setCategories(normalizedCategories);
+            setWallets(walletData || []);
             setWalletId(activeWalletId);
             setWalletBalance(activeWallet?.balance || 0);
 
@@ -96,6 +100,21 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
             }
         } catch (error) {
             console.error('Loi dong bo du lieu:', error.message);
+        }
+    };
+
+    const handleSelectWallet = async (nextWalletId) => {
+        setWalletId(nextWalletId);
+        setWalletPickerOpen(false);
+        const activeWallet = wallets.find((wallet) => wallet.id === nextWalletId);
+        setWalletBalance(activeWallet?.balance || 0);
+
+        try {
+            const txData = nextWalletId ? await getTransactionsByWallet(nextWalletId) : [];
+            setTransactions(normalizeTransactions(txData));
+        } catch (error) {
+            console.error('Loi tai giao dich theo vi:', error.message);
+            setTransactions([]);
         }
     };
 
@@ -129,7 +148,7 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
             voiceText,
         });
 
-        await loadAllData();
+        await loadAllData(nextWalletId);
     };
 
     const handleSaveRecording = async () => {
@@ -185,7 +204,7 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
             });
         } catch (error) {
             console.error('Loi AI:', error);
-            Alert.alert('Loi', 'Khong phan tich duoc giọng noi.');
+            Alert.alert('Loi', 'Khong phan tich duoc giong noi.');
             setVoiceModalVisible(false);
         } finally {
             setIsParsing(false);
@@ -284,12 +303,37 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
                     </View>
 
                     <View style={styles.balanceCard}>
+                        <View style={styles.walletPickerRow}>
+                            <TouchableOpacity style={styles.walletDropdown} onPress={() => setWalletPickerOpen((value) => !value)}>
+                                <Text style={styles.walletDropdownLabel}>{selectedWalletName}</Text>
+                                <LucideChevronDown size={18} color={COLORS.textSub} />
+                            </TouchableOpacity>
+
+                            {isWalletPickerOpen ? (
+                                <View style={styles.walletDropdownMenu}>
+                                    {wallets.map((wallet) => (
+                                        <TouchableOpacity
+                                            key={wallet.id}
+                                            style={[styles.walletDropdownItem, walletId === wallet.id && styles.walletDropdownItemActive]}
+                                            onPress={() => handleSelectWallet(wallet.id)}
+                                        >
+                                            <Text style={[styles.walletDropdownItemText, walletId === wallet.id && styles.walletDropdownItemTextActive]}>
+                                                {wallet.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ) : null}
+                        </View>
+
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                             <View>
                                 <Text style={styles.balanceAmount}>
                                     {isBalanceVisible ? formatCurrency(walletBalance) : '******'}
                                 </Text>
-                                <Text style={{ color: COLORS.textSub, fontSize: 12 }}>So du vi hien tai</Text>
+                                <Text style={{ color: COLORS.textSub, fontSize: 12 }}>
+                                    {selectedWalletName}
+                                </Text>
                             </View>
 
                             <TouchableOpacity
@@ -339,7 +383,7 @@ const HomeScreen = ({ onLogout, sessionMode }) => {
                         ))
                     ) : (
                         <Text style={{ color: COLORS.textSub, textAlign: 'center', marginVertical: 20 }}>
-                            Chua co giao dich nao
+                            Chua co giao dich nao trong vi nay
                         </Text>
                     )}
                 </View>
