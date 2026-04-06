@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
     LucideAlertTriangle,
@@ -17,18 +17,18 @@ import { generateAiAdvice, getAiAdviceHistory } from '../services/aiService';
 import { getWallets } from '../services/walletService';
 
 const REPORT_TYPE_OPTIONS = [
-    { key: 'ALL', label: 'Tat ca' },
-    { key: 'EXPENSE', label: 'Chi tieu' },
-    { key: 'INCOME', label: 'Thu nhap' },
+    { key: 'ALL', label: 'Tất cả' },
+    { key: 'EXPENSE', label: 'Chi tiêu' },
+    { key: 'INCOME', label: 'Thu nhập' },
 ];
 
 const CATEGORY_COLORS = {
-    'An uong': '#F97316',
-    'Di chuyen': '#10B981',
-    'Mua sam': '#6366F1',
-    'Hoc phi / Sach vo': '#8B5CF6',
-    'Giai tri': '#D946EF',
-    Khac: '#9CA3AF',
+    'Ăn uống': '#F97316',
+    'Di chuyển': '#10B981',
+    'Mua sắm': '#6366F1',
+    'Học phí / Sách vở': '#8B5CF6',
+    'Giải trí': '#D946EF',
+    'Khác': '#9CA3AF',
 };
 
 const formatDate = (value) => {
@@ -45,7 +45,7 @@ const getCurrentPeriod = () => {
 
 const formatPeriodLabel = (period) => {
     const [year, month] = period.split('-');
-    return `Thang ${Number(month)} / ${year}`;
+    return `Tháng ${Number(month)} / ${year}`;
 };
 
 const shiftPeriod = (period, offset) => {
@@ -78,10 +78,10 @@ const formatCompactMoney = (value) => {
     if (Math.abs(amount) >= 1000000) {
         return `${(amount / 1000000).toFixed(1)}M`;
     }
-    return `${Math.round(amount).toLocaleString('vi-VN')}d`;
+    return `${Math.round(amount).toLocaleString('vi-VN')}đ`;
 };
 
-const formatMoney = (value) => `${Math.round(toNumber(value)).toLocaleString('vi-VN')}d`;
+const formatMoney = (value) => `${Math.round(toNumber(value)).toLocaleString('vi-VN')}đ`;
 
 const calculateChangePercent = (currentValue, previousValue) => {
     const current = toNumber(currentValue);
@@ -104,7 +104,7 @@ const ReportScreen = ({ sessionMode }) => {
     const [reportDate, setReportDate] = useState({ month: '--', year: '----' });
     const [loading, setLoading] = useState(true);
     const [reportError, setReportError] = useState('');
-    const [aiAdviceText, setAiAdviceText] = useState('Dang tai goi y AI...');
+    const [aiAdviceText, setAiAdviceText] = useState('Đang tải gợi ý AI...');
     const [aiAdviceSource, setAiAdviceSource] = useState('/api/ai/advice/history');
     const [isRefreshingAdvice, setIsRefreshingAdvice] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod);
@@ -146,7 +146,7 @@ const ReportScreen = ({ sessionMode }) => {
                 return null;
             });
         } catch (error) {
-            console.warn('Loi tai danh sach vi:', error.message);
+            console.warn('Lỗi tải danh sách ví:', error.message);
             setWalletOptions([]);
             setSelectedWalletId(null);
         }
@@ -154,18 +154,18 @@ const ReportScreen = ({ sessionMode }) => {
 
     const loadAiAdvice = async ({ forceRefresh = false } = {}) => {
         if (isGuest) {
-            setAiAdviceText('Guest mode dang dung thong ke local. Dang nhap de xem AI advice.');
+            setAiAdviceText('Guest mode đang dùng thống kê local. Đăng nhập để xem AI advice.');
             setAiAdviceSource('guest-local');
             return;
         }
 
         if (typeFilter !== 'ALL') {
-            setAiAdviceText('Goi y AI hien duoc hien theo tong quan ky. Chon "Tat ca" de xem.');
+            setAiAdviceText('Gợi ý AI hiện được hiển thị theo tổng quan kỳ. Chọn "Tất cả" để xem.');
             setAiAdviceSource('filter-blocked');
             return;
         }
 
-        setAiAdviceText('Dang tai goi y AI...');
+        setAiAdviceText('Đang tải gợi ý AI...');
         setAiAdviceSource('/api/ai/advice/generate');
 
         try {
@@ -184,10 +184,10 @@ const ReportScreen = ({ sessionMode }) => {
                 period: selectedPeriod,
                 walletId: selectedWalletId,
             });
-            setAiAdviceText(generated?.adviceText || 'Chua co goi y AI.');
+            setAiAdviceText(generated?.adviceText || 'Chưa có gợi ý AI.');
             setAiAdviceSource('/api/ai/advice/generate');
         } catch (error) {
-            setAiAdviceText(`Khong tai duoc goi y AI: ${error.message}`);
+            setAiAdviceText(`Không tải được gợi ý AI: ${error.message}`);
             setAiAdviceSource('error');
         }
     };
@@ -250,19 +250,19 @@ const ReportScreen = ({ sessionMode }) => {
             const topIncomeCategory = responseData.topIncomeCategories?.[0];
 
             if (balance < 0) {
-                nextAlerts.push(`Canh bao: Ky nay dang am ${formatMoney(Math.abs(balance))}.`);
+                nextAlerts.push(`Cảnh báo: Kỳ này đang âm ${formatMoney(Math.abs(balance))}.`);
             }
 
             if (typeFilter !== 'INCOME' && totalIncome > 0 && totalExpense > totalIncome) {
-                nextAlerts.push(`Chi tieu da vuot thu nhap ${formatMoney(totalExpense - totalIncome)}.`);
+                nextAlerts.push(`Chi tiêu đã vượt thu nhập ${formatMoney(totalExpense - totalIncome)}.`);
             }
 
             if (typeFilter !== 'INCOME' && topExpenseCategory) {
-                nextAlerts.push(`Hang muc chi nhieu nhat: ${topExpenseCategory.categoryName} (${formatMoney(topExpenseCategory.total)}).`);
+                nextAlerts.push(`Hạng mục chi nhiều nhất: ${topExpenseCategory.categoryName} (${formatMoney(topExpenseCategory.total)}).`);
             }
 
             if (typeFilter === 'INCOME' && topIncomeCategory) {
-                nextAlerts.push(`Nguon thu noi bat: ${topIncomeCategory.categoryName} (${formatMoney(topIncomeCategory.total)}).`);
+                nextAlerts.push(`Nguồn thu nổi bật: ${topIncomeCategory.categoryName} (${formatMoney(topIncomeCategory.total)}).`);
             }
 
             setAlerts(nextAlerts);
@@ -272,8 +272,8 @@ const ReportScreen = ({ sessionMode }) => {
                 value: (typeFilter === 'INCOME' ? toNumber(report.totalIncome) : toNumber(report.totalExpense)) / 1000000,
             })));
         } catch (error) {
-            console.warn('Loi tai report:', error.message);
-            setReportError(error.message || 'Khong tai duoc bao cao.');
+            console.warn('Lỗi tải report:', error.message);
+            setReportError(error.message || 'Không tải được báo cáo.');
             setSummary({ income: 0, expense: 0, balance: 0 });
             setCatStats([]);
             setAlerts([]);
@@ -312,9 +312,9 @@ const ReportScreen = ({ sessionMode }) => {
                     <LucideChevronLeft color="#fff" />
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
-                    <Text style={styles.headerTitle}>Bao cao tai chinh</Text>
+                    <Text style={styles.headerTitle}>Báo cáo tài chính</Text>
                     <Text style={styles.headerSubtitle}>
-                        {periodTitle}{isGuest ? ' � Guest' : ''}
+                        {periodTitle}{isGuest ? ' • Guest' : ''}
                     </Text>
                 </View>
                 <TouchableOpacity
@@ -330,25 +330,25 @@ const ReportScreen = ({ sessionMode }) => {
             {loading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={{ marginTop: 10, color: COLORS.textSub }}>Dang phan tich...</Text>
+                    <Text style={{ marginTop: 10, color: COLORS.textSub }}>Đang phân tích...</Text>
                 </View>
             ) : (
                 <ScrollView showsVerticalScrollIndicator={false} style={styles.content}>
                     {reportError ? (
                         <View style={[styles.alertCard, { backgroundColor: '#FEF2F2', marginTop: 20 }]}> 
-                            <Text style={styles.alertText}>{`Khong tai duoc bao cao: ${reportError}`}</Text>
+                            <Text style={styles.alertText}>{`Không tải được báo cáo: ${reportError}`}</Text>
                         </View>
                     ) : null}
 
                     <View style={styles.walletFilterWrap}>
-                        <Text style={styles.walletFilterTitle}>Pham vi bao cao</Text>
+                        <Text style={styles.walletFilterTitle}>Phạm vi báo cáo</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.walletFilterRow}>
                             <TouchableOpacity
                                 style={[styles.walletChip, selectedWalletId === null && styles.walletChipActive]}
                                 onPress={() => setSelectedWalletId(null)}
                             >
                                 <Text style={[styles.walletChipText, selectedWalletId === null && styles.walletChipTextActive]}>
-                                    Tat ca vi
+                                    Tất cả ví
                                 </Text>
                             </TouchableOpacity>
                             {walletOptions.map((wallet) => (
@@ -367,15 +367,15 @@ const ReportScreen = ({ sessionMode }) => {
 
                     <View style={styles.summaryRow}>
                         <View style={[styles.summaryCard, { backgroundColor: COLORS.primary }]}>
-                            <Text style={styles.sumLabel}>Thu nhap</Text>
+                            <Text style={styles.sumLabel}>Thu nhập</Text>
                             <Text style={styles.sumValue}>{formatCompactMoney(summary.income)}</Text>
                         </View>
                         <View style={[styles.summaryCard, { backgroundColor: `${COLORS.primary}CC` }]}>
-                            <Text style={styles.sumLabel}>Chi tieu</Text>
+                            <Text style={styles.sumLabel}>Chi tiêu</Text>
                             <Text style={styles.sumValue}>{formatCompactMoney(summary.expense)}</Text>
                         </View>
                         <View style={[styles.summaryCard, { backgroundColor: summary.balance < 0 ? COLORS.danger : COLORS.success }]}>
-                            <Text style={styles.sumLabel}>Can doi</Text>
+                            <Text style={styles.sumLabel}>Cân đối</Text>
                             <Text style={styles.sumValue}>{formatCompactMoney(summary.balance)}</Text>
                         </View>
                     </View>
@@ -405,10 +405,10 @@ const ReportScreen = ({ sessionMode }) => {
                     <View style={styles.whiteCard}>
                         <View style={styles.cardHeader}>
                             <Text style={styles.cardTitle}>
-                                {typeFilter === 'INCOME' ? 'Phan bo thu nhap' : 'Phan bo chi tieu'}
+                                {typeFilter === 'INCOME' ? 'Phân bổ thu nhập' : 'Phân bổ chi tiêu'}
                             </Text>
                             <Text style={[styles.badgeText, badgeChange > 0 && { color: COLORS.danger }]}>
-                                {`${badgeChange >= 0 ? '+' : ''}${badgeChange.toFixed(0)}% vs thang truoc`}
+                                {`${badgeChange >= 0 ? '+' : ''}${badgeChange.toFixed(0)}% vs tháng trước`}
                             </Text>
                         </View>
                         <View style={styles.mainProgressBg}>
@@ -422,7 +422,7 @@ const ReportScreen = ({ sessionMode }) => {
                                 ]}
                             />
                         </View>
-                        <Text style={[styles.cardTitle, { marginTop: 15, fontSize: 14 }]}>Chi tiet hang muc</Text>
+                        <Text style={[styles.cardTitle, { marginTop: 15, fontSize: 14 }]}>Chi tiết hạng mục</Text>
                         {catStats.length > 0 ? (
                             catStats.map((item, index) => (
                                 <View key={`${item.name}-${index}`} style={styles.categoryProgressRow}>
@@ -442,7 +442,7 @@ const ReportScreen = ({ sessionMode }) => {
                                 </View>
                             ))
                         ) : (
-                            <Text style={styles.emptyStateText}>Chua co du lieu phan bo cho ky nay.</Text>
+                            <Text style={styles.emptyStateText}>Chưa có dữ liệu phân bổ cho kỳ này.</Text>
                         )}
                     </View>
 
@@ -454,7 +454,7 @@ const ReportScreen = ({ sessionMode }) => {
                                 </View>
                                 <View>
                                     <Text style={styles.insightTitle}>Insights & Reports</Text>
-                                    <Text style={styles.insightSub}>Du lieu truc quan</Text>
+                                    <Text style={styles.insightSub}>Dữ liệu trực quan</Text>
                                 </View>
                             </View>
                             <TouchableOpacity style={styles.collapseBtn}>
@@ -466,13 +466,13 @@ const ReportScreen = ({ sessionMode }) => {
                                 style={[styles.trendTab, activeTrendTab === 'trend' && styles.trendTabActive]}
                                 onPress={() => setActiveTrendTab('trend')}
                             >
-                                <Text style={[styles.trendTabText, activeTrendTab === 'trend' && styles.trendTabTextActive]}>Xu huong</Text>
+                                <Text style={[styles.trendTabText, activeTrendTab === 'trend' && styles.trendTabTextActive]}>Xu hướng</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.trendTab, activeTrendTab === 'breakdown' && styles.trendTabActive]}
                                 onPress={() => setActiveTrendTab('breakdown')}
                             >
-                                <Text style={[styles.trendTabText, activeTrendTab === 'breakdown' && styles.trendTabTextActive]}>Phan loai</Text>
+                                <Text style={[styles.trendTabText, activeTrendTab === 'breakdown' && styles.trendTabTextActive]}>Phân loại</Text>
                             </TouchableOpacity>
                         </View>
                         <View style={styles.chartContainer}>
@@ -491,8 +491,8 @@ const ReportScreen = ({ sessionMode }) => {
                                     />
                                 ) : (
                                     <View style={styles.emptyDonut}>
-                                        <Text style={styles.donutCenterText}>Xu huong</Text>
-                                        <Text style={styles.emptyDonutHint}>Khong co du lieu de ve bieu do</Text>
+                                        <Text style={styles.donutCenterText}>Xu hướng</Text>
+                                        <Text style={styles.emptyDonutHint}>Không có dữ liệu để vẽ biểu đồ</Text>
                                     </View>
                                 )
                             ) : (
@@ -513,7 +513,7 @@ const ReportScreen = ({ sessionMode }) => {
                                             />
                                             <View style={styles.donutCenterLabel}>
                                                 <Text style={styles.donutCenterText}>
-                                                    {typeFilter === 'INCOME' ? 'Tong thu' : 'Tong chi'}
+                                                    {typeFilter === 'INCOME' ? 'Tổng thu' : 'Tổng chi'}
                                                 </Text>
                                                 <Text style={styles.donutCenterAmount}>
                                                     {formatCompactMoney(typeFilter === 'INCOME' ? summary.income : summary.expense)}
@@ -523,10 +523,10 @@ const ReportScreen = ({ sessionMode }) => {
                                     ) : (
                                         <View style={styles.emptyDonut}>
                                             <Text style={styles.donutCenterText}>
-                                                {typeFilter === 'INCOME' ? 'Tong thu' : 'Tong chi'}
+                                                {typeFilter === 'INCOME' ? 'Tổng thu' : 'Tổng chi'}
                                             </Text>
-                                            <Text style={styles.donutCenterAmount}>0d</Text>
-                                            <Text style={styles.emptyDonutHint}>Chua co du lieu phan bo</Text>
+                                            <Text style={styles.donutCenterAmount}>0đ</Text>
+                                            <Text style={styles.emptyDonutHint}>Chưa có dữ liệu phân bổ</Text>
                                         </View>
                                     )}
                                 </View>
@@ -549,7 +549,7 @@ const ReportScreen = ({ sessionMode }) => {
 
                     <View style={styles.sectionHeader}>
                         <LucideAlertTriangle size={18} color="#EF4444" />
-                        <Text style={styles.sectionTitle}> Canh bao</Text>
+                        <Text style={styles.sectionTitle}> Cảnh báo</Text>
                     </View>
                     {alerts.length > 0 ? alerts.map((message, index) => (
                         <View key={`${message}-${index}`} style={[styles.alertCard, { backgroundColor: '#FEF2F2' }]}>
@@ -557,19 +557,19 @@ const ReportScreen = ({ sessionMode }) => {
                         </View>
                     )) : (
                         <View style={[styles.alertCard, { backgroundColor: '#F0FDF4' }]}>
-                            <Text style={[styles.alertText, { color: '#166534' }]}>Chi tieu an toan!</Text>
+                            <Text style={[styles.alertText, { color: '#166534' }]}>Chi tiêu an toàn!</Text>
                         </View>
                     )}
 
                     <View style={styles.sectionHeader}>
                         <LucideTrendingUp size={18} color={COLORS.primary} />
-                        <Text style={styles.sectionTitle}> Giao dich trong ky</Text>
+                        <Text style={styles.sectionTitle}> Giao dịch trong kỳ</Text>
                     </View>
                     {periodTransactions.length > 0 ? (
                         periodTransactions.map((transaction) => (
                             <TransactionItem
                                 key={transaction.id}
-                                title={transaction.note || transaction.categoryName || 'Giao dich'}
+                                title={transaction.note || transaction.categoryName || 'Giao dịch'}
                                 amount={transaction.amount}
                                 date={formatDate(transaction.transactionDate)}
                                 category={transaction.categoryName || transaction.walletName}
@@ -578,7 +578,7 @@ const ReportScreen = ({ sessionMode }) => {
                         ))
                     ) : (
                         <View style={[styles.alertCard, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
-                            <Text style={[styles.alertText, { color: COLORS.primary }]}>Khong co giao dich nao trong ky nay.</Text>
+                            <Text style={[styles.alertText, { color: COLORS.primary }]}>Không có giao dịch nào trong kỳ này.</Text>
                         </View>
                     )}
 
@@ -587,7 +587,7 @@ const ReportScreen = ({ sessionMode }) => {
                             <View style={styles.sectionHeaderBetween}>
                                 <View style={styles.sectionHeaderInline}>
                                     <LucideLightbulb size={18} color="#10B981" />
-                                    <Text style={styles.sectionTitle}> Goi y tu AI</Text>
+                                    <Text style={styles.sectionTitle}> Gợi ý từ AI</Text>
                                 </View>
                                 <TouchableOpacity
                                     style={[styles.refreshAdviceButton, isRefreshingAdvice && styles.refreshAdviceButtonDisabled]}
@@ -595,7 +595,7 @@ const ReportScreen = ({ sessionMode }) => {
                                     disabled={isRefreshingAdvice || typeFilter !== 'ALL'}
                                 >
                                     <Text style={styles.refreshAdviceButtonText}>
-                                        {isRefreshingAdvice ? 'Dang tao...' : 'Tao lai goi y AI'}
+                                        {isRefreshingAdvice ? 'Đang tạo...' : 'Tạo lại gợi ý AI'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -605,7 +605,7 @@ const ReportScreen = ({ sessionMode }) => {
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.suggestTitle}>{aiAdviceText}</Text>
-                                    <Text style={styles.suggestAmount}>{`Nguon: ${aiAdviceSource}`}</Text>
+                                    <Text style={styles.suggestAmount}>{`Nguồn: ${aiAdviceSource}`}</Text>
                                 </View>
                             </TouchableOpacity>
                         </>

@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { importGuestDataOnApi } from '../api/guestImportApi';
 import { initGuestDb, runInDbTransaction } from './guestDb';
 
@@ -29,9 +29,16 @@ const getRowsByIds = async (db, tableName, ids) => {
     );
 };
 
-export const hasPendingGuestImport = async () => {
+const getGuestFinanceSnapshot = async () => {
     const db = await initGuestDb();
-    const [walletCount, categoryCount, transactionCount] = await Promise.all([
+    const [
+        localOnlyWalletCount,
+        localOnlyCategoryCount,
+        localOnlyTransactionCount,
+        totalTransactionCount,
+        customWalletCount,
+        customCategoryCount,
+    ] = await Promise.all([
         db.getFirstAsync(
             `SELECT COUNT(*) AS count FROM wallets WHERE is_default = 0 AND migration_state = ?`,
             LOCAL_ONLY
@@ -44,11 +51,35 @@ export const hasPendingGuestImport = async () => {
             `SELECT COUNT(*) AS count FROM transactions WHERE migration_state = ?`,
             LOCAL_ONLY
         ),
+        db.getFirstAsync('SELECT COUNT(*) AS count FROM transactions'),
+        db.getFirstAsync('SELECT COUNT(*) AS count FROM wallets WHERE is_default = 0'),
+        db.getFirstAsync('SELECT COUNT(*) AS count FROM categories WHERE is_default = 0'),
     ]);
 
-    return Number(walletCount?.count ?? 0) > 0
-        || Number(categoryCount?.count ?? 0) > 0
-        || Number(transactionCount?.count ?? 0) > 0;
+    return {
+        localOnlyWalletCount: Number(localOnlyWalletCount?.count ?? 0),
+        localOnlyCategoryCount: Number(localOnlyCategoryCount?.count ?? 0),
+        localOnlyTransactionCount: Number(localOnlyTransactionCount?.count ?? 0),
+        totalTransactionCount: Number(totalTransactionCount?.count ?? 0),
+        customWalletCount: Number(customWalletCount?.count ?? 0),
+        customCategoryCount: Number(customCategoryCount?.count ?? 0),
+    };
+};
+
+export const hasPendingGuestImport = async () => {
+    const snapshot = await getGuestFinanceSnapshot();
+
+    if (snapshot.localOnlyWalletCount > 0
+        || snapshot.localOnlyCategoryCount > 0
+        || snapshot.localOnlyTransactionCount > 0) {
+        return true;
+    }
+
+    // Fallback thuc te hon: neu guest da co du lieu tai chinh local dang ke,
+    // van hien prompt import de nguoi dung khong bo lo du lieu sau khi dang nhap.
+    return snapshot.totalTransactionCount > 0
+        || snapshot.customWalletCount > 0
+        || snapshot.customCategoryCount > 0;
 };
 
 export const buildGuestImportPayload = async () => {

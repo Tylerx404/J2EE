@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -75,7 +75,7 @@ export default function App() {
         await seedGuestDataIfNeeded();
       } catch (error) {
         console.error('Guest DB init error:', error);
-        Alert.alert('Loi', 'Khong khoi tao duoc bo nho local cho guest mode.');
+        Alert.alert('Lỗi', 'Không khởi tạo được bộ nhớ local cho guest mode.');
         setSessionMode(SESSION_MODES.LOGGED_OUT);
       }
     };
@@ -99,8 +99,8 @@ export default function App() {
       console.error('Guest entry error:', error);
       setSessionMode(SESSION_MODES.LOGGED_OUT);
       Alert.alert(
-        'Khong vao duoc guest mode',
-        `Khong the khoi tao du lieu local tren moi truong nay. ${error.message || ''}`.trim()
+        'Không vào được guest mode',
+        `Không thể khởi tạo dữ liệu local trên môi trường này. ${error.message || ''}`.trim()
       );
     } finally {
       setIsEnteringGuest(false);
@@ -117,33 +117,33 @@ export default function App() {
     }
 
     Alert.alert(
-      'Du lieu guest local',
-      'Da tim thay du lieu local chua import. Ban muon xu ly the nao?',
+      'Dữ liệu guest local',
+      'Đã tìm thấy dữ liệu local chưa import. Bạn muốn xử lý thế nào?',
       [
         {
-          text: 'Import du lieu local',
+          text: 'Import dữ liệu local',
           onPress: async () => {
             try {
               const { payload, response } = await importGuestDataToBackend();
               setFinanceDataVersion((value) => value + 1);
               const importedCounts = response?.importedCounts || {};
               Alert.alert(
-                'Import thanh cong',
-                `Wallet ${payload.wallets.length}: tao ${importedCounts.walletsCreated || 0}, dung lai ${importedCounts.walletsReused || 0}.\nCategory ${payload.categories.length}: tao ${importedCounts.categoriesCreated || 0}, dung lai ${importedCounts.categoriesReused || 0}.\nTransaction ${payload.transactions.length}: tao ${importedCounts.transactionsCreated || 0}, dung lai ${importedCounts.transactionsReused || 0}.`
+                'Import thành công',
+                `Wallet ${payload.wallets.length}: tạo ${importedCounts.walletsCreated || 0}, dùng lại ${importedCounts.walletsReused || 0}.\nCategory ${payload.categories.length}: tạo ${importedCounts.categoriesCreated || 0}, dùng lại ${importedCounts.categoriesReused || 0}.\nTransaction ${payload.transactions.length}: tạo ${importedCounts.transactionsCreated || 0}, dùng lại ${importedCounts.transactionsReused || 0}.`
               );
             } catch (error) {
-              Alert.alert('Import that bai', error.message || 'Khong import duoc du lieu local.');
+              Alert.alert('Import thất bại', error.message || 'Không import được dữ liệu local.');
             }
           },
         },
         {
-          text: 'Giu rieng',
+          text: 'Giữ riêng',
           onPress: async () => {
             await keepGuestImportSeparate();
           },
         },
         {
-          text: 'De sau',
+          text: 'Để sau',
           style: 'cancel',
           onPress: async () => {
             await postponeGuestImport();
@@ -207,7 +207,7 @@ export default function App() {
         <Tab.Screen
           name="Budget"
           options={{
-            tabBarLabel: 'Tong quan',
+            tabBarLabel: 'Tổng quan',
             tabBarIcon: ({ color }) => <LucideLayoutDashboard color={color} size={24} />,
           }}
         >
@@ -223,14 +223,14 @@ export default function App() {
           name="History"
           component={HistoryScreen}
           options={{
-            tabBarLabel: 'Lich su',
+            tabBarLabel: 'Lịch sử',
             tabBarIcon: ({ color }) => <LucideHistory color={color} size={24} />,
           }}
         />
         <Tab.Screen
           name="Reports"
           options={{
-            tabBarLabel: 'Bao cao',
+            tabBarLabel: 'Báo cáo',
             tabBarIcon: ({ color }) => <LucidePieChart color={color} size={24} />,
           }}
         >
@@ -240,7 +240,7 @@ export default function App() {
           name="Category"
           component={CategoryScreen}
           options={{
-            tabBarLabel: 'Hang muc',
+            tabBarLabel: 'Hạng mục',
             tabBarIcon: ({ color }) => <LucideTags color={color} size={24} />,
           }}
         />
@@ -248,14 +248,14 @@ export default function App() {
           name="Wallets"
           component={WalletScreen}
           options={{
-            tabBarLabel: 'Vi',
+            tabBarLabel: 'Ví',
             tabBarIcon: ({ color }) => <LucideWallet color={color} size={24} />,
           }}
         />
         <Tab.Screen
           name="Profile"
           options={{
-            tabBarLabel: 'Ho so',
+            tabBarLabel: 'Hồ sơ',
             tabBarIcon: ({ color }) => <LucideUser color={color} size={24} />,
           }}
         >
