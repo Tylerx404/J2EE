@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { register } from '../services/authService';
 import { COLORS } from '../theme/colors';
@@ -9,16 +9,16 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin, onBack }) => {
     const handleRegister = async () => {
         const { username, email, password, fullName } = form;
         if (!username.trim() || !email.trim() || !password.trim() || !fullName.trim()) {
-            return Alert.alert('Loi', 'Vui long dien day du thong tin');
+            return Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
         }
 
         try {
             const data = await register(form.username, form.email, form.password, form.fullName);
-            const displayName = data.fullName || data.username || 'moi';
-            Alert.alert('Thanh cong', `Tai khoan ${displayName} da duoc tao!`);
+            const displayName = data.fullName || data.username || 'mới';
+            Alert.alert('Thành công', `Tài khoản ${displayName} đã được tạo!`);
             await onRegisterSuccess?.();
         } catch (error) {
-            Alert.alert('Loi dang ky', error.message);
+            Alert.alert('Lỗi đăng ký', error.message);
         }
     };
 
@@ -26,15 +26,15 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin, onBack }) => {
         <View style={styles.container}>
             {onBack ? (
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>Quay lai</Text>
+                    <Text style={styles.backButtonText}>Quay lại</Text>
                 </TouchableOpacity>
             ) : null}
 
-            <Text style={styles.title}>Tao tai khoan moi</Text>
+            <Text style={styles.title}>Tạo tài khoản mới</Text>
 
             <TextInput
                 style={styles.input}
-                placeholder="Ho va ten"
+                placeholder="Họ và tên"
                 onChangeText={(value) => setForm({ ...form, fullName: value })}
             />
 
@@ -55,17 +55,17 @@ const RegisterScreen = ({ onRegisterSuccess, onBackToLogin, onBack }) => {
 
             <TextInput
                 style={styles.input}
-                placeholder="Mat khau"
+                placeholder="Mật khẩu"
                 secureTextEntry
                 onChangeText={(value) => setForm({ ...form, password: value })}
             />
 
             <TouchableOpacity style={styles.button} onPress={handleRegister}>
-                <Text style={styles.buttonText}>DANG KY</Text>
+                <Text style={styles.buttonText}>ĐĂNG KÝ</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={onBackToLogin} style={{ marginTop: 20 }}>
-                <Text style={{ color: COLORS.primary, textAlign: 'center' }}>Da co tai khoan? Dang nhap</Text>
+                <Text style={{ color: COLORS.primary, textAlign: 'center' }}>Đã có tài khoản? Đăng nhập</Text>
             </TouchableOpacity>
         </View>
     );

@@ -6,7 +6,6 @@ import { COLORS } from '../../theme/colors';
 export const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
 
-    // Header xanh bao phủ
     blueHeader: { backgroundColor: COLORS.primary, padding: 20, paddingTop: 50, flexDirection: 'row', alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32, paddingBottom: 40 },
     headerInfo: { flex: 1, paddingHorizontal: 15 },
     headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
@@ -18,7 +17,24 @@ export const styles = StyleSheet.create({
 
     content: { padding: 16 },
 
-    // Hàng tóm tắt nằm trong Header
+    walletFilterWrap: { marginBottom: 16 },
+    walletFilterTitle: { fontSize: 13, fontWeight: '700', color: COLORS.textMain, marginBottom: 10 },
+    walletFilterRow: { gap: 10, paddingRight: 8 },
+    walletChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 18,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    walletChipActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    walletChipText: { color: COLORS.textSub, fontSize: 13, fontWeight: '600' },
+    walletChipTextActive: { color: '#fff' },
+
     summaryRow: { flexDirection: 'row', gap: 10, marginTop: -8, marginBottom: 20 },
     summaryCard: { flex: 1, padding: 12, borderRadius: 20, elevation: 4 },
     sumLabel: { color: '#fff', fontSize: 10, opacity: 0.8 },
@@ -40,13 +56,11 @@ export const styles = StyleSheet.create({
     filterChipText: { color: COLORS.textSub, fontSize: 13, fontWeight: '600' },
     filterChipTextActive: { color: '#fff' },
 
-    // Thẻ trắng đè lên Header (Overlap effect)
     whiteCard: { backgroundColor: COLORS.cardBg, padding: 20, borderRadius: 24, marginBottom: 20, elevation: 2, marginTop: 0 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     cardTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain },
     badgeText: { fontSize: 12, color: COLORS.primary, backgroundColor: COLORS.primaryLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
 
-    // Progress Bars
     mainProgressBg: { height: 12, backgroundColor: COLORS.border, borderRadius: 6, marginVertical: 15, overflow: 'hidden' },
     mainProgressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 6 },
 
@@ -57,9 +71,19 @@ export const styles = StyleSheet.create({
     catPercent: { width: 30, fontSize: 12, color: COLORS.textLight, textAlign: 'right' },
     emptyStateText: { marginTop: 14, color: COLORS.textSub, fontSize: 13 },
 
-    // Alerts & Suggestions
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: 10 },
+    sectionHeaderBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 10 },
+    sectionHeaderInline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain },
+
+    refreshAdviceButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 14,
+        backgroundColor: COLORS.primary,
+    },
+    refreshAdviceButtonDisabled: { opacity: 0.5 },
+    refreshAdviceButtonText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
     countBadge: { backgroundColor: COLORS.dangerLight, width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
     countText: { color: COLORS.danger, fontSize: 12, fontWeight: 'bold' },
@@ -73,7 +97,6 @@ export const styles = StyleSheet.create({
     suggestTitle: { fontSize: 14, color: COLORS.success, fontWeight: '500' },
     suggestAmount: { fontSize: 12, color: COLORS.success, marginTop: 2 },
 
-    // START SECTION: AI INSIGHTS & TREND CHART
     insightsCard: { backgroundColor: '#fff', marginHorizontal: 0, borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, marginBottom: 20 },
     insightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
     insightTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -102,7 +125,6 @@ export const styles = StyleSheet.create({
     tooltipBox: { position: 'absolute', backgroundColor: '#1F2937', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 },
     tooltipText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
 
-    // BIỂU ĐỒ TRÒN DONUT
     donutContainer: { alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 240 },
     donutChartWrap: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center', position: 'relative' },
     donutCenterLabel: {

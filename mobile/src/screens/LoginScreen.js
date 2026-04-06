@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { login } from '../services/authService';
 import { COLORS } from '../theme/colors';
@@ -16,16 +16,16 @@ const LoginScreen = ({
 
     const handleLogin = async () => {
         if (!account.trim() || !password.trim()) {
-            Alert.alert('Thong bao', 'Vui long dien day du thong tin dang nhap');
+            Alert.alert('Thông báo', 'Vui lòng điền đầy đủ thông tin đăng nhập');
             return;
         }
 
         try {
             const data = await login(account, password);
-            Alert.alert('Thanh cong', `Chao mung ${data.name}!`);
+            Alert.alert('Thành công', `Chào mừng ${data.name}!`);
             await onLoginSuccess?.();
         } catch (error) {
-            Alert.alert('Loi dang nhap', error.message);
+            Alert.alert('Lỗi đăng nhập', error.message);
         }
     };
 
@@ -33,33 +33,33 @@ const LoginScreen = ({
         <View style={styles.container}>
             {onBack ? (
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>Quay lai</Text>
+                    <Text style={styles.backButtonText}>Quay lại</Text>
                 </TouchableOpacity>
             ) : null}
 
-            <Text style={styles.title}>Dang nhap J2EE</Text>
+            <Text style={styles.title}>Đăng nhập J2EE</Text>
             <TextInput
                 style={styles.input}
-                placeholder="Username hoac Email"
+                placeholder="Username hoặc Email"
                 value={account}
                 onChangeText={setAccount}
                 autoCapitalize="none"
             />
             <TextInput
                 style={styles.input}
-                placeholder="Mat khau"
+                placeholder="Mật khẩu"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
             />
 
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                <Text style={styles.buttonText}>DANG NHAP</Text>
+                <Text style={styles.buttonText}>ĐĂNG NHẬP</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={onGoToRegister} style={styles.linkButton}>
                 <Text style={styles.linkText}>
-                    Chua co tai khoan? <Text style={styles.linkTextBold}>Dang ky ngay</Text>
+                    Chưa có tài khoản? <Text style={styles.linkTextBold}>Đăng ký ngay</Text>
                 </Text>
             </TouchableOpacity>
 
@@ -72,10 +72,10 @@ const LoginScreen = ({
                     {isGuestEntryLoading ? (
                         <View style={styles.guestLoadingRow}>
                             <ActivityIndicator size="small" color={COLORS.primary} />
-                            <Text style={styles.guestButtonText}>Dang khoi tao guest mode...</Text>
+                            <Text style={styles.guestButtonText}>Đang khởi tạo guest mode...</Text>
                         </View>
                     ) : (
-                        <Text style={styles.guestButtonText}>Dung thu khong can dang nhap</Text>
+                        <Text style={styles.guestButtonText}>Dùng thử không cần đăng nhập</Text>
                     )}
                 </TouchableOpacity>
             ) : null}
