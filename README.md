@@ -16,3 +16,26 @@
 2.eas build --profile development --platform android
 3.Đợi lấy QR Code: Quét bằng camera điện thoại để tải file APK về.
 4.Mở App "mobile" trên Android: Tận hưởng cảm giác nhấn Mic và thấy sóng âm Waveform nhảy nhót mà không còn lỗi "Native module" nữa.
+# Backup Oracle Docker local
+
+Neu ban dang chay Oracle du phong bang Docker voi:
+
+```powershell
+docker run -d --name oracle-db -p 1521:1521 -e ORACLE_PASSWORD=SecretPassword123 -v oracle-data:/opt/oracle/oradata gvenzl/oracle-xe
+```
+
+co the backup volume bang script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-oracle-volume.ps1
+```
+
+Backup se duoc tao trong thu muc `backups/` duoi dang `.tar.gz`.
+
+Mot so tuy chon hay dung:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-oracle-volume.ps1 -OutputName oracle-backup.tar.gz
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-oracle-volume.ps1 -BackupDir .\my-backups
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-oracle-volume.ps1 -KeepContainerStopped
+```
